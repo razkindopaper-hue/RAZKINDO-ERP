@@ -38,24 +38,24 @@ import { Label } from '@/components/ui/label';
 // ─── Types ──────────────────────────────────────────────────────────
 
 interface MootaBank {
-  id: string;
+  bank_id: string;
   bank_type: string;
-  bank_name: string;
+  label?: string;
   account_number: string;
-  account_holder: string;
-  balance: number | null;
-  status: string;
+  atas_nama: string;
+  balance: string;
+  is_active?: boolean;
 }
 
 interface MootaMutation {
-  id: string;
+  mutation_id: string;
   bank_id: string;
   date: string;
   note: string;
   description: string;
-  amount: number;
+  amount: string;
   type: 'CR' | 'DB';
-  balance: number;
+  balance: string;
 }
 
 interface MatchedTransaction {
@@ -141,7 +141,7 @@ export default function BankMutationsTab({ bankAccounts }: BankMutationsTabProps
 
   // Auto-select first bank
   if (mootaBanks.length > 0 && !selectedBankId) {
-    setSelectedBankId(mootaBanks[0].id);
+    setSelectedBankId(mootaBanks[0].bank_id);
   }
 
   // Fetch mutations
@@ -201,7 +201,7 @@ export default function BankMutationsTab({ bankAccounts }: BankMutationsTabProps
 
     if (isCredit) {
       // Uang masuk — search for matching unpaid transactions
-      const absAmount = Math.abs(mutation.amount);
+      const absAmount = Math.abs(Number(mutation.amount) || 0);
       apiFetch<{ transactions: MatchedTransaction[] }>(
         `/api/transactions?type=sale&status=approved`
       ).then((res) => {
@@ -230,14 +230,14 @@ export default function BankMutationsTab({ bankAccounts }: BankMutationsTabProps
     setIsProcessingLunas(true);
 
     // Find bank account ID by matching account number
-    const mootaBank = mootaBanks.find(b => b.id === selectedMutation.bank_id);
+    const mootaBank = mootaBanks.find(b => b.bank_id === selectedMutation.bank_id);
     const bankAccount = bankAccounts.find(
       (ba: any) => mootaBank && ba.accountNo === mootaBank.account_number
     );
 
     matchMutation.mutate({
       type: 'lunas',
-      mutationId: selectedMutation.id,
+      mutationId: selectedMutation.mutation_id,
       mutationAmount: selectedMutation.amount,
       mutationDate: selectedMutation.date,
       mutationDescription: selectedMutation.description,
@@ -255,14 +255,14 @@ export default function BankMutationsTab({ bankAccounts }: BankMutationsTabProps
     if (!selectedMutation) return;
     setIsProcessingPool(true);
 
-    const mootaBank = mootaBanks.find(b => b.id === selectedMutation.bank_id);
+    const mootaBank = mootaBanks.find(b => b.bank_id === selectedMutation.bank_id);
     const bankAccount = bankAccounts.find(
       (ba: any) => mootaBank && ba.accountNo === mootaBank.account_number
     );
 
     matchMutation.mutate({
       type: 'pool',
-      mutationId: selectedMutation.id,
+      mutationId: selectedMutation.mutation_id,
       mutationAmount: selectedMutation.amount,
       mutationDate: selectedMutation.date,
       mutationDescription: selectedMutation.description,
@@ -280,14 +280,14 @@ export default function BankMutationsTab({ bankAccounts }: BankMutationsTabProps
     if (!selectedMutation || !debitAction) return;
     setIsProcessingDebit(true);
 
-    const mootaBank = mootaBanks.find(b => b.id === selectedMutation.bank_id);
+    const mootaBank = mootaBanks.find(b => b.bank_id === selectedMutation.bank_id);
     const bankAccount = bankAccounts.find(
       (ba: any) => mootaBank && ba.accountNo === mootaBank.account_number
     );
 
     matchMutation.mutate({
       type: debitAction,
-      mutationId: selectedMutation.id,
+      mutationId: selectedMutation.mutation_id,
       mutationAmount: selectedMutation.amount,
       mutationDate: selectedMutation.date,
       mutationDescription: selectedMutation.description,
@@ -305,7 +305,7 @@ export default function BankMutationsTab({ bankAccounts }: BankMutationsTabProps
     });
   };
 
-  const selectedBank = mootaBanks.find(b => b.id === selectedBankId);
+  const selectedBank = mootaBanks.find(b => b.bank_id === selectedBankId);
 
   return (
     <div className="space-y-4">
@@ -381,16 +381,16 @@ export default function BankMutationsTab({ bankAccounts }: BankMutationsTabProps
             <div className="flex flex-wrap gap-2">
             {mootaBanks.map((bank) => (
               <button
-                key={bank.id}
-                onClick={() => { setSelectedBankId(bank.id); setPage(1); }}
+                key={bank.bank_id}
+                onClick={() => { setSelectedBankId(bank.bank_id); setPage(1); }}
                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                  selectedBankId === bank.id
+                  selectedBankId === bank.bank_id
                     ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border border-green-300 dark:border-green-700'
                     : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300 border border-transparent hover:bg-gray-200 dark:hover:bg-gray-700'
                 }`}
               >
                 <span>{getBankLogo(bank.bank_type)}</span>
-                <span className="truncate max-w-[120px]">{bank.bank_name || bank.bank_type.toUpperCase()}</span>
+                <span className="truncate max-w-[120px]">{bank.label || bank.bank_type.toUpperCase()}</span>
                 <span className="text-[10px] opacity-60">{bank.account_number}</span>
               </button>
             ))}
@@ -464,7 +464,7 @@ export default function BankMutationsTab({ bankAccounts }: BankMutationsTabProps
                   <TableBody>
                     {mutations.map((mutation) => (
                       <TableRow
-                        key={mutation.id}
+                        key={mutation.mutation_id}
                         className="cursor-pointer hover:bg-muted/50 transition-colors"
                         onClick={() => handleMutationClick(mutation)}
                       >
@@ -477,10 +477,10 @@ export default function BankMutationsTab({ bankAccounts }: BankMutationsTabProps
                         <TableCell className={`text-xs py-2.5 text-right font-semibold whitespace-nowrap ${
                           mutation.type === 'CR' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                         }`}>
-                          {mutation.type === 'CR' ? '+' : '-'}{formatCurrency(Math.abs(mutation.amount))}
+                          {mutation.type === 'CR' ? '+' : '-'}{formatCurrency(Math.abs(Number(mutation.amount) || 0))}
                         </TableCell>
                         <TableCell className="text-xs py-2.5 text-right whitespace-nowrap">
-                          {formatCurrency(mutation.balance)}
+                          {formatCurrency(Number(mutation.balance) || 0)}
                         </TableCell>
                         <TableCell className="text-center py-2.5">
                           <Badge variant={mutation.type === 'CR' ? 'default' : 'destructive'} className="text-[10px] h-5 px-1.5">
@@ -557,7 +557,7 @@ export default function BankMutationsTab({ bankAccounts }: BankMutationsTabProps
             <DialogDescription className="space-y-1">
               <p className="text-sm">
                 <span className="font-bold text-base">
-                  {actionMode === 'credit' ? '+' : '-'}{formatCurrency(Math.abs(selectedMutation?.amount || 0))}
+                  {actionMode === 'credit' ? '+' : '-'}{formatCurrency(Math.abs(Number(selectedMutation?.amount) || 0))}
                 </span>
               </p>
               <p className="text-xs text-muted-foreground">
@@ -691,7 +691,7 @@ export default function BankMutationsTab({ bankAccounts }: BankMutationsTabProps
             </DialogTitle>
             <DialogDescription>
               Invoice yang belum lunas dengan nominal mendekati{' '}
-              <span className="font-bold">{formatCurrency(Math.abs(selectedMutation?.amount || 0))}</span>
+              <span className="font-bold">{formatCurrency(Math.abs(Number(selectedMutation?.amount) || 0))}</span>
             </DialogDescription>
           </DialogHeader>
 
@@ -768,7 +768,7 @@ export default function BankMutationsTab({ bankAccounts }: BankMutationsTabProps
               Masuk ke Pool Dana
             </DialogTitle>
             <DialogDescription>
-              Alokasikan <span className="font-bold">{formatCurrency(Math.abs(selectedMutation?.amount || 0))}</span> ke pool dana
+              Alokasikan <span className="font-bold">{formatCurrency(Math.abs(Number(selectedMutation?.amount) || 0))}</span> ke pool dana
             </DialogDescription>
           </DialogHeader>
 
@@ -839,7 +839,7 @@ export default function BankMutationsTab({ bankAccounts }: BankMutationsTabProps
               {debitAction === 'purchase' && 'Catat Pembelian / Hutang'}
             </DialogTitle>
             <DialogDescription>
-              Keluar <span className="font-bold">{formatCurrency(Math.abs(selectedMutation?.amount || 0))}</span> —{' '}
+              Keluar <span className="font-bold">{formatCurrency(Math.abs(Number(selectedMutation?.amount) || 0))}</span> —{' '}
               {selectedMutation?.date && formatDate(selectedMutation.date.split(' ')[0])}
             </DialogDescription>
           </DialogHeader>
