@@ -1357,6 +1357,12 @@ export default function FinanceModule() {
                   )}
                 </span>
               </SelectItem>
+              <SelectItem value="mutations">
+                <span className="inline-flex items-center gap-2">
+                  <Landmark className="w-4 h-4" />
+                  <span>🏦 Mutasi Bank</span>
+                </span>
+              </SelectItem>
               <SelectItem value="transfers">
                 <span className="inline-flex items-center gap-2">
                   <ArrowLeftRight className="w-4 h-4" />
@@ -1419,6 +1425,10 @@ export default function FinanceModule() {
                 {pendingRequests.length}
               </span>
             )}
+          </TabsTrigger>
+          <TabsTrigger value="mutations" className="shrink-0 whitespace-nowrap text-xs sm:text-sm gap-1 text-green-700 dark:text-green-400 font-semibold">
+            <Landmark className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+            🏦 Mutasi
           </TabsTrigger>
           <TabsTrigger value="transfers" className="shrink-0 whitespace-nowrap text-xs sm:text-sm gap-1">
             <ArrowLeftRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
@@ -1985,10 +1995,6 @@ export default function FinanceModule() {
             )}
           </div>
 
-          {/* Mutasi Bank Moota */}
-          <div className="mt-4 pt-4 border-t">
-            <BankMutationsTab bankAccounts={bankAccounts} />
-          </div>
         </TabsContent>
 
         {/* Edit Bank Account Dialog */}
@@ -2011,6 +2017,11 @@ export default function FinanceModule() {
           </DialogContent>
         </Dialog>
         
+        {/* Mutasi Bank Tab (Moota) */}
+        <TabsContent value="mutations" className="space-y-4">
+          <BankMutationsTab bankAccounts={bankAccounts} />
+        </TabsContent>
+
         {/* Cash Boxes Tab */}
         <TabsContent value="cashbox" className="space-y-4">
           <div className="flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-center">
