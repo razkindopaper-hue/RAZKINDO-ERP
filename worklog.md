@@ -132,3 +132,36 @@ Stage Summary:
 - **Root cause**: Column `deliveryAddress` created in camelCase instead of snake_case due to missing `@map()` in Prisma schema
 - **Fix**: Renamed column to `delivery_address` in PostgreSQL and added proper `@map()` directive in Prisma schema
 - Transaction creation (invoice) should now work correctly
+
+---
+Task ID: 7
+Agent: Main Agent
+Task: Integrate Moota bank mutations into Finance module
+
+Work Log:
+- Created `src/lib/moota.ts` — Moota API v2 client wrapper with types (MootaBank, MootaMutation, MootaPaginatedResponse)
+- Added MOOTA_API_URL and MOOTA_PERSONAL_TOKEN to `.env.local`
+- Created 4 API routes:
+  - `GET /api/finance/moota/banks` — Fetch registered bank accounts from Moota
+  - `GET /api/finance/moota/mutations?bankId=X` — Fetch mutations for a bank with pagination, date/type filters
+  - `POST /api/finance/moota/refresh` — Trigger mutation refresh for a bank
+  - `POST /api/finance/moota/match` — Match mutation to action (lunas invoice, add to pool, record expense/salary)
+- Created `src/components/erp/BankMutationsTab.tsx` — Full-featured mutasi bank tab with:
+  - Bank account selector (from Moota)
+  - Mutation list with date/type filters and pagination
+  - Click mutation → popup with action options:
+    - **Uang Masuk (CR)**: Tandai Lunas Invoice, Masuk ke Pool Dana (HPP/Profit/Lain-lain)
+    - **Uang Keluar (DB)**: Catat Pengeluaran, Pembayaran Gaji, Pembelian/Hutang
+  - Lunas dialog: auto-searches matching unpaid invoices by amount
+  - Pool dialog: select HPP/Profit/Lain-lain pool
+  - Debit dialog: select action type + description
+- Integrated into `FinanceModule.tsx` as new "Mutasi" tab (after Pencairan, before Hutang)
+- Added `moota` API endpoints to `src/lib/api-client.ts`
+- Tested Moota API v2 connectivity — confirmed working (banks + mutations endpoints)
+- Verified: BCA account 7735216163 (Rico Diaz Ardyawan) with balance Rp 31,272,559.15
+
+Stage Summary:
+- Moota v2 API integration complete with correct endpoints and auth
+- Finance module now has "Mutasi" tab showing real bank mutations from Moota
+- Click-to-action workflow: mutation → popup → choose action (lunas/pool/expense/salary)
+- Token scopes confirmed: api, user, bank, bank_read, mutation, mutation_read

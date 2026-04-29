@@ -45,6 +45,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ArrowRightLeft,
+  Landmark,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -75,6 +76,7 @@ import { PoolAdjustForm } from './PoolAdjustForm';
 import { DepositDialog } from './DepositDialog';
 import CashbackWithdrawalsTab from './CashbackWithdrawalsTab';
 import { ExpenseDialog } from './ExpenseDialog';
+import BankMutationsTab from './BankMutationsTab';
 
 // ================================
 // HELPER FUNCTIONS (outside component to avoid recreation)
@@ -1393,6 +1395,12 @@ export default function FinanceModule() {
                   <span>Arus Kas</span>
                 </span>
               </SelectItem>
+              <SelectItem value="mutations">
+                <span className="inline-flex items-center gap-2">
+                  <Landmark className="w-4 h-4" />
+                  <span>Mutasi Bank</span>
+                </span>
+              </SelectItem>
               <SelectItem value="debts">
                 <span className="inline-flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4" />
@@ -1445,6 +1453,10 @@ export default function FinanceModule() {
                 {receivableStats.overdueCount}
               </span>
             )}
+          </TabsTrigger>
+          <TabsTrigger value="mutations" className="shrink-0 whitespace-nowrap text-xs sm:text-sm gap-1">
+            <Landmark className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+            Mutasi
           </TabsTrigger>
           <TabsTrigger value="debts" className="relative shrink-0 whitespace-nowrap text-xs sm:text-sm gap-1">
             <AlertTriangle className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
@@ -2382,6 +2394,11 @@ export default function FinanceModule() {
           />
         </TabsContent>
         
+        {/* Mutasi Bank Tab (Moota Integration) */}
+        <TabsContent value="mutations" className="space-y-4">
+          <BankMutationsTab bankAccounts={bankAccounts} />
+        </TabsContent>
+
         {/* Hutang Perusahaan Tab */}
         <TabsContent value="debts" className="space-y-4">
           <CompanyDebtsTab

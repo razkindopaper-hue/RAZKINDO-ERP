@@ -826,6 +826,36 @@ export const api = {
       }),
   },
 
+  // ============ MOOTA (Bank Mutations) ============
+  moota: {
+    getBanks: () =>
+      apiFetch<{ banks: any[] }>('/api/finance/moota/banks'),
+
+    getMutations: (bankId: string, params?: { page?: number; perPage?: number; startDate?: string; endDate?: string; type?: string }) => {
+      const query = new URLSearchParams();
+      if (params?.page) query.set('page', String(params.page));
+      if (params?.perPage) query.set('perPage', String(params.perPage));
+      if (params?.startDate) query.set('startDate', params.startDate);
+      if (params?.endDate) query.set('endDate', params.endDate);
+      if (params?.type) query.set('type', params.type);
+      return apiFetch<{ data: any[]; current_page: number; last_page: number; total: number }>(
+        `/api/finance/moota/mutations?bankId=${bankId}&${query.toString()}`
+      );
+    },
+
+    refresh: (bankId: string) =>
+      apiFetch<{ success: boolean; message: string }>('/api/finance/moota/refresh', {
+        method: 'POST',
+        body: JSON.stringify({ bankId }),
+      }),
+
+    match: (data: any) =>
+      apiFetch<{ success: boolean; message: string }>('/api/finance/moota/match', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+  },
+
   // ============ SYSTEM ============
   system: {
     reset: (type: 'all' | 'transactions' | 'products' | 'users') =>
