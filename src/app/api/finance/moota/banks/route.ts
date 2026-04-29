@@ -1,10 +1,10 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getMootaBanks, isMootaConfigured } from '@/lib/moota';
 import { verifyAndGetAuthUser } from '@/lib/token';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const authResult = await verifyAndGetAuthUser(null, { role: true });
+    const authResult = await verifyAndGetAuthUser(request.headers.get('authorization'), { role: true });
     if (!authResult || !['super_admin', 'keuangan'].includes(authResult.user.role)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
