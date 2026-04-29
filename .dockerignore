@@ -57,3 +57,8 @@ prompt
 skills
 *.tsbuildinfo
 next-env.d.ts
+
+# Non-app directories (have their own package.json / dependencies)
+examples
+mini-services
+worklog.md
