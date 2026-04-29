@@ -1338,6 +1338,25 @@ export default function FinanceModule() {
         </Card>
       )}
       
+      {/* Quick Access: Mutasi Bank Moota */}
+      <Card
+        className="border-green-200 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/40 dark:to-emerald-950/40 dark:border-green-800 cursor-pointer hover:shadow-md transition-shadow"
+        onClick={() => setActiveTab('mutations')}
+      >
+        <CardContent className="p-3 sm:p-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center shrink-0">
+              <Landmark className="w-5 h-5 text-green-600 dark:text-green-400" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold text-sm text-green-800 dark:text-green-200">🏦 Mutasi Bank (Moota)</p>
+              <p className="text-xs text-muted-foreground">Cek mutasi rekening bank • Klik untuk membuka</p>
+            </div>
+            <ArrowRight className="w-4 h-4 text-green-600 dark:text-green-400 shrink-0" />
+          </div>
+        </CardContent>
+      </Card>
+      
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         {/* Mobile: Dropdown selector */}
