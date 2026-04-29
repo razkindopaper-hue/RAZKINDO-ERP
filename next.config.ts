@@ -9,7 +9,8 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  reactStrictMode: true,
+  // reactStrictMode: true, // TODO: re-enable after fixing double-mount side effects in ERP components
+  reactStrictMode: false,
 
   ...(isSTB ? {
     experimental: {
