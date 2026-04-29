@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase';
 
+const isSTB = process.env.STB_MODE === 'true' || process.env.STB_MODE === '1';
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -79,16 +81,20 @@ export async function GET(request: NextRequest) {
         : 'Sistem ERP komprehensif untuk manajemen bisnis multi-unit',
       start_url: isCustomer ? `/c/${customerCode}` : '/',
       display: 'standalone' as const,
-      display_override: ['window-controls-overlay', 'standalone'],
+      display_override: isSTB
+        ? ['window-controls-overlay', 'standalone']
+        : ['window-controls-overlay', 'standalone', 'minimal-ui'],
       background_color: isCustomer ? '#f9fafb' : '#0f172a',
       theme_color: isCustomer ? '#0d9488' : '#0f172a',
-      orientation: 'any' as const,
-      scope: isCustomer ? '/c/' : '/',
+      orientation: isSTB ? ('landscape' as const) : ('any' as const),
+      scope: '/',
       icons,
       categories: isCustomer ? ['business', 'shopping'] : ['business', 'productivity', 'utilities'],
       lang: 'id',
       dir: 'ltr' as const,
       prefer_related_applications: false,
+      // STB: prevent navigation away from the app
+      ...(isSTB ? { navigation_type: 'in-app' as const } : {}),
     };
 
     return new NextResponse(JSON.stringify(manifest), {
@@ -107,10 +113,12 @@ export async function GET(request: NextRequest) {
       description: 'Sistem ERP komprehensif untuk manajemen bisnis multi-unit',
       start_url: '/',
       display: 'standalone',
-      display_override: ['window-controls-overlay', 'standalone'],
+      display_override: isSTB
+        ? ['window-controls-overlay', 'standalone']
+        : ['window-controls-overlay', 'standalone', 'minimal-ui'],
       background_color: '#0f172a',
       theme_color: '#0f172a',
-      orientation: 'any',
+      orientation: isSTB ? 'landscape' : 'any',
       scope: '/',
       icons: [
         {

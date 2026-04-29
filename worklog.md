@@ -60,3 +60,36 @@ Stage Summary:
 - All 24 PostgreSQL RPC functions created in Supabase database
 - Transaction creation flow (SaleForm → POST /api/transactions → stock deduction → customer stats update) should now work
 - Server running stable on port 3000
+
+---
+Task ID: 4
+Agent: Main Agent
+Task: Adapt entire ERP PWA system for STB (Set-Top Box) deployment
+
+Work Log:
+- **STB_MODE activation**: Set `STB_MODE=true` in `.env.local` — triggers 2GB RAM budget, smaller connection pools, aggressive caching
+- **Layout (`src/app/layout.tsx`)**: 
+  - Injected `window.__STB_MODE__` flag for client-side STB detection
+  - Added 512x512 icon for STB home screen
+  - Added `interactiveWidget: resizes-content` viewport for fullscreen
+  - Added `mobile-web-app-capable` meta for Android PWA install
+- **PWA Manifest (`src/app/api/pwa/manifest/route.ts`)**:
+  - STB mode: `orientation: landscape` (TV/STB typically landscape)
+  - Added `navigation_type: in-app` to prevent external navigation
+  - Unified `scope: /` for both ERP and customer portal
+  - Fallback manifest also updated for STB
+- **Service Worker (`public/sw.js`)**:
+  - Upgraded to v6 with STB-optimized caching strategies
+  - Added `cacheFirst()` for static assets (no network round-trip)
+  - Added `staleWhileRevalidate()` for _next dynamic chunks
+  - Added inline offline fallback HTML page
+  - Better error handling and cache management
+- **next.config.ts**: Already had correct STB config (workerThreads: false, optimizeCss: false, no-store headers)
+- **Verified**: Server boots with `[STB Config] ⚡ STB MODE ACTIVE — RAM budget: 2048MB, heap max: 384MB`
+
+Stage Summary:
+- STB mode fully active across entire ERP system
+- PWA installable on STB devices (standalone display, landscape orientation)
+- Service worker provides offline capability with aggressive caching
+- Memory budget optimized for 2GB STB hardware (384MB heap max, reduced connection pools)
+- All modules auto-tune from `stb-config.ts`: DB pools (3 tx / 2 session), event queue (1000), query cache (50 entries)

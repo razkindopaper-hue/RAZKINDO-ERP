@@ -14,13 +14,17 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const isSTB = process.env.STB_MODE === 'true' || process.env.STB_MODE === '1';
+
 export const viewport: Viewport = {
-  themeColor: "#0f172a",
+  themeColor: isSTB ? "#0f172a" : "#0f172a",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover",
+  // STB: ensure fullscreen display without browser chrome
+  ...(isSTB ? { interactiveWidget: "resizes-content" as const } : {}),
 };
 
 export const metadata: Metadata = {
@@ -32,10 +36,17 @@ export const metadata: Metadata = {
     icon: [
       { url: "/api/pwa/icon?size=32", sizes: "32x32", type: "image/png" },
       { url: "/api/pwa/icon?size=192", sizes: "192x192", type: "image/png" },
+      ...(isSTB ? [{ url: "/api/pwa/icon?size=512", sizes: "512x512", type: "image/png" }] : []),
     ],
     apple: "/api/pwa/icon?size=180",
   },
   manifest: "/api/pwa/manifest",
+  // STB: force standalone display when installed as PWA
+  ...(isSTB ? {
+    other: {
+      "mobile-web-app-capable": "yes",
+    },
+  } : {}),
   openGraph: {
     title: "Razkindo ERP",
     description: "Enterprise Resource Planning System",
@@ -68,6 +79,12 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
+        {/* STB mode flag for client-side detection */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `window.__STB_MODE__ = ${isSTB};`,
+          }}
+        />
         <ErrorBoundary>
           {children}
         </ErrorBoundary>
