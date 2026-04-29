@@ -1,0 +1,40 @@
+# ============================================================
+# Razkindo ERP — Docker Compose for STB (Amlogic S9xx)
+# 
+# Usage:
+#   docker compose pull          # Pull latest image
+#   docker compose up -d         # Start
+#   docker compose down          # Stop
+#   docker compose logs -f       # View logs
+#   docker compose up -d --force-recreate  # Update to latest
+# ============================================================
+
+services:
+  erp:
+    image: ghcr.io/henryarthanto/erpstb:latest
+    container_name: razkindo-erp
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - STB_MODE=true
+    volumes:
+      # Persist .env.local (config)
+      - ./docker-env/.env.local:/app/.env.local:ro
+      # Persist database auth secret
+      - ./docker-env/db:/app/db
+      # Persist server logs
+      - ./logs:/app/logs
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
