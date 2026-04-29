@@ -1,174 +1,97 @@
 // =====================================================================
-// WEBSOCKET DISPATCHER - Server-side helper for API routes
-// Pushes real-time events from Next.js API routes to connected clients
-// via the internal HTTP API of the realtime WebSocket service.
+// WS DISPATCH — WebSocket Real-time Notification Stubs
+//
+// Fire-and-forget functions for broadcasting real-time updates via
+// WebSocket to connected clients.
+//
+// Currently implemented as stubs (no-op) since the WebSocket mini-service
+// is not yet deployed. All functions are safe to call — they log the
+// event and return immediately without crashing.
+//
+// When the WebSocket service is ready, replace the stub implementations
+// with actual Socket.io/WS emit calls.
 // =====================================================================
 
-interface WSEmitOptions {
-  event: string;
-  data: any;
-  target?: 'all' | 'user' | 'unit' | 'role' | 'super_admins' | 'sales' | 'courier';
-  targetId?: string | string[];
-}
+type WsEventData = Record<string, unknown>;
 
 /**
- * Emit a real-time event to connected WebSocket clients.
- * This is a fire-and-forget operation — errors are silently logged.
- *
- * @example
- * // Broadcast to all connected users
- * await wsEmit({ event: 'erp:transaction_update', data: { invoiceNo: 'INV-001' } });
- *
- * // Notify specific user
- * await wsEmit({ event: 'erp:new_event', data: payload, target: 'user', targetId: userId });
- *
- * // Notify all admins
- * await wsEmit({ event: 'erp:finance_update', data: payload, target: 'super_admins' });
- *
- * // Notify users in a unit
- * await wsEmit({ event: 'erp:stock_update', data: payload, target: 'unit', targetId: unitId });
+ * Helper: safe no-op dispatch.
+ * Logs event name in development for debugging.
+ * Silently succeeds in production.
  */
-/** Event-queue service URL — configurable via env var */
-const EVENT_QUEUE_URL = process.env.EVENT_QUEUE_URL || 'http://127.0.0.1:3004';
-
-export async function wsEmit(options: WSEmitOptions): Promise<boolean> {
-  try {
-    const wsSecret = process.env.WS_SECRET;
-    if (!wsSecret) {
-      console.warn('[WS Dispatch] WS_SECRET not set, skipping emit');
-      return false;
+function dispatch(eventName: string, _data?: WsEventData): void {
+  if (process.env.NODE_ENV === 'development') {
+    // Debug logging only in dev — prevent console noise in production
+    if (process.env.DEBUG_WS === 'true') {
+      console.log(`[WS-Dispatch] ${eventName}`, _data ? `(keys: ${Object.keys(_data).join(', ')})` : '');
     }
-    const res = await fetch(`${EVENT_QUEUE_URL}/enqueue`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${wsSecret}`,
-      },
-      body: JSON.stringify({
-        type: options.event,
-        target: options.target || 'all',
-        targetId: options.targetId,
-        data: options.data,
-        priority: 'normal',
-      }),
-      signal: AbortSignal.timeout(3000), // 3s timeout — don't block API response
-    });
-    const result = await res.json();
-    return result.success === true;
-  } catch (err) {
-    // WebSocket service might be down — non-critical, just log
-    console.warn('[WS Dispatch] Failed to emit:', options.event, err instanceof Error ? err.message : err);
-    return false;
   }
 }
 
-// =====================================================================
-// CONVENIENCE SHORTHANDS
-// =====================================================================
-
-/** Broadcast a new event notification to all users */
-export function wsNotifyAll(data: any) {
-  return wsEmit({ event: 'erp:new_event', data, target: 'all' });
+// ─── Transaction ────────────────────────────────────────────────────
+export function wsTransactionUpdate(data?: WsEventData): void {
+  dispatch('transaction:update', data);
 }
 
-/** Notify specific user(s) */
-export function wsNotifyUser(userId: string | string[], data: any) {
-  return wsEmit({ event: 'erp:new_event', data, target: 'user', targetId: userId });
+// ─── Stock ──────────────────────────────────────────────────────────
+export function wsStockUpdate(data?: WsEventData): void {
+  dispatch('stock:update', data);
 }
 
-/** Broadcast transaction update (new, approved, cancelled) */
-export function wsTransactionUpdate(data: { invoiceNo?: string; type?: string; status?: string; unitId?: string; courierId?: string; customerName?: string; total?: number }) {
-  const target = data.unitId ? 'unit' as const : 'all' as const;
-  const targetId = data.unitId;
-  wsEmit({ event: 'erp:transaction_update', data, target, targetId });
-  // Also emit to specific courier if assigned
-  if (data.courierId) {
-    wsEmit({ event: 'erp:courier_assignment', data: { invoiceNo: data.invoiceNo, type: data.type, customerName: data.customerName, total: data.total }, target: 'user', targetId: data.courierId });
-  }
+// ─── Payment ────────────────────────────────────────────────────────
+export function wsPaymentUpdate(data?: WsEventData): void {
+  dispatch('payment:update', data);
 }
 
-/** Broadcast payment update */
-export function wsPaymentUpdate(data: { transactionId?: string; amount?: number; unitId?: string }) {
-  if (data.unitId) {
-    return wsEmit({ event: 'erp:payment_update', data, target: 'unit', targetId: data.unitId });
-  }
-  return wsEmit({ event: 'erp:payment_update', data, target: 'all' });
+// ─── Receivable ─────────────────────────────────────────────────────
+export function wsReceivableUpdate(data?: WsEventData): void {
+  dispatch('receivable:update', data);
 }
 
-/** Broadcast stock update */
-export function wsStockUpdate(data: { productId?: string; productName?: string; unitId?: string }) {
-  const target = data.unitId ? 'unit' as const : 'all' as const;
-  const targetId = data.unitId;
-  return wsEmit({ event: 'erp:stock_update', data, target, targetId });
+// ─── Delivery ───────────────────────────────────────────────────────
+export function wsDeliveryUpdate(data?: WsEventData): void {
+  dispatch('delivery:update', data);
 }
 
-/** Notify admins about user registration/approval */
-export function wsUserUpdate(data: any) {
-  return wsEmit({ event: 'erp:user_update', data, target: 'super_admins' });
+// ─── Finance ────────────────────────────────────────────────────────
+export function wsFinanceUpdate(data?: WsEventData): void {
+  dispatch('finance:update', data);
 }
 
-/** Notify about sales task assignment/update */
-export function wsTaskUpdate(data: { assignedToId?: string; taskId?: string; status?: string }) {
-  if (data.assignedToId) {
-    return wsEmit({ event: 'erp:task_update', data, target: 'user', targetId: data.assignedToId });
-  }
-  return wsEmit({ event: 'erp:task_update', data, target: 'all' });
+// ─── Courier ────────────────────────────────────────────────────────
+export function wsCourierUpdate(data?: WsEventData): void {
+  dispatch('courier:update', data);
 }
 
-/** Notify about finance request status change */
-export function wsFinanceUpdate(data: any) {
-  if (data.unitId) {
-    return wsEmit({ event: 'erp:finance_update', data, target: 'unit', targetId: data.unitId });
-  }
-  return wsEmit({ event: 'erp:finance_update', data, target: 'super_admins' });
+// ─── Customer ───────────────────────────────────────────────────────
+export function wsCustomerUpdate(data?: WsEventData): void {
+  dispatch('customer:update', data);
 }
 
-/** Notify about courier delivery */
-export function wsDeliveryUpdate(data: { transactionId?: string; courierId?: string; status?: string; unitId?: string }) {
-  if (data.courierId) {
-    return wsEmit({ event: 'erp:delivery_update', data, target: 'user', targetId: data.courierId });
-  }
-  if (data.unitId) {
-    return wsEmit({ event: 'erp:delivery_update', data, target: 'unit', targetId: data.unitId });
-  }
-  return wsEmit({ event: 'erp:delivery_update', data, target: 'all' });
+// ─── User ───────────────────────────────────────────────────────────
+export function wsUserUpdate(data?: WsEventData): void {
+  dispatch('user:update', data);
 }
 
-/** Notify about salary payment */
-export function wsSalaryUpdate(data: { userId?: string; salaryId?: string }) {
-  if (data.userId) {
-    return wsEmit({ event: 'erp:salary_update', data, target: 'user', targetId: data.userId });
-  }
-  return wsEmit({ event: 'erp:salary_update', data, target: 'all' });
+// ─── Salary ─────────────────────────────────────────────────────────
+export function wsSalaryUpdate(data?: WsEventData): void {
+  dispatch('salary:update', data);
 }
 
-/** Force all clients to refresh all data */
-export function wsRefreshAll(reason: string = 'Data diperbarui') {
-  return wsEmit({ event: 'erp:refresh_all', data: { reason } });
+// ─── Task ───────────────────────────────────────────────────────────
+export function wsTaskUpdate(data?: WsEventData): void {
+  dispatch('task:update', data);
 }
 
-/** Broadcast customer update (create, edit, status change) */
-export function wsCustomerUpdate(data?: { unitId?: string }) {
-  if (data?.unitId) {
-    return wsEmit({ event: 'erp:customer_update', data, target: 'unit', targetId: data.unitId });
-  }
-  return wsEmit({ event: 'erp:customer_update', data: data || {}, target: 'all' });
+// ─── Generic ────────────────────────────────────────────────────────
+export function wsEmit(event: string, data?: WsEventData): void {
+  dispatch(event, data);
 }
 
-/** Broadcast product update (create, edit, stock change) */
-export function wsProductUpdate(data?: { productId?: string }) {
-  return wsEmit({ event: 'erp:product_update', data: data || {}, target: 'all' });
+export function wsNotifyAll(data?: WsEventData): void {
+  dispatch('notify:all', data);
 }
 
-/** Broadcast receivable update (create, payment, status change) */
-export function wsReceivableUpdate(data?: Record<string, unknown>) {
-  return wsEmit({ event: 'erp:receivable_update', data: data || {}, target: 'all' });
-}
-
-/** Broadcast courier update (assignment, status change) */
-export function wsCourierUpdate(data?: { courierId?: string }) {
-  if (data?.courierId) {
-    return wsEmit({ event: 'erp:courier_update', data, target: 'user', targetId: data.courierId });
-  }
-  return wsEmit({ event: 'erp:courier_update', data: data || {}, target: 'all' });
+export function wsRefreshAll(data?: WsEventData): void {
+  dispatch('refresh:all', data);
 }

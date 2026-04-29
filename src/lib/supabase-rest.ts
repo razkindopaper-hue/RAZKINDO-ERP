@@ -98,6 +98,16 @@ function createSupabaseClient(): SupabaseClient {
     db: {
       schema: 'public',
     },
+    global: {
+      fetch: (url: string, options: RequestInit = {}) => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 25000); // 25s per-request timeout
+        if (options.signal) {
+          options.signal.addEventListener('abort', () => controller.abort(), { once: true });
+        }
+        return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timeoutId));
+      },
+    },
   });
 }
 
