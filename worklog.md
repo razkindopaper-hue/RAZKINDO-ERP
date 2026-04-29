@@ -40,3 +40,23 @@ Stage Summary:
 - **0 lint errors** (down from 1), 1708 warnings (gradual improvement path)
 - All critical and medium severity issues from the audit report addressed
 - Dev server running stable on port 3000 with all routes working
+
+---
+Task ID: 3
+Agent: Main Agent
+Task: Fix transaction errors — create missing PostgreSQL RPC functions
+
+Work Log:
+- Identified root cause: Prisma `db push` only creates tables, NOT custom PostgreSQL RPC functions
+- Found 24 RPC functions used via `db.rpc()` that were missing from the Supabase database
+- Functions needed: `atomic_increment_customer_stats`, `decrement_stock`, `increment_stock`, `decrement_unit_stock`, `increment_unit_stock`, `recalc_global_stock`, `batch_decrement_centralized_stock`, `decrement_unit_stock_recalc`, `increment_stock_with_hpp`, `reverse_purchase_stock_with_hpp`, `atomic_add_courier_cash`, `atomic_add_cashback`, `atomic_deduct_cashback`, `get_sale_totals_aggregate`, `get_physical_balance_totals`, `finance_reconcile`, `process_courier_handover`, `get_courier_cash_totals`, `atomic_double_entry`, `get_derived_pool_balances`, `get_derived_physical_balances`, `atomic_update_balance`, `atomic_update_setting_balance`, `ensure_pg_trgm`
+- Created migration file: `prisma/migrations/001_create_rpc_functions.sql` (1067 lines, 24 functions)
+- Executed migration on Supabase via `pg` client — all functions created successfully
+- Sent `NOTIFY pgrst, 'reload schema'` to refresh PostgREST API
+- Reverted `reactStrictMode` to `false` (ERP components have side effects that break with double-mount)
+- Dev server restarted and verified working
+
+Stage Summary:
+- All 24 PostgreSQL RPC functions created in Supabase database
+- Transaction creation flow (SaleForm → POST /api/transactions → stock deduction → customer stats update) should now work
+- Server running stable on port 3000
