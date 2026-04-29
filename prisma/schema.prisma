@@ -354,7 +354,7 @@ model Transaction {
 
   // Notes
   notes            String?
-  deliveryAddress  String?
+  deliveryAddress  String?   @map("delivery_address")
   
   // Timestamps
   transactionDate  DateTime  @default(now()) @map("transaction_date")

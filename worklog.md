@@ -113,3 +113,22 @@ Stage Summary:
 - **Fix**: Created stub ws-dispatch module with all 14 required exports as safe no-op functions
 - **Bonus**: Added Supabase client timeout (25s) and Caddy proxy timeouts (120s) to prevent future hang-related 502s
 - All 29 affected API routes now compile and respond correctly
+
+---
+Task ID: 6
+Agent: Main Agent
+Task: Fix "terjadi kesalahan server" (500) during transaction/invoice creation
+
+Work Log:
+- Checked dev server logs — found PGRST204 error: `"Could not find the 'delivery_address' column of 'transactions' in the schema cache"`
+- Investigated database schema — discovered the column was actually named `deliveryAddress` (camelCase) instead of `delivery_address` (snake_case)
+- Prisma `db push` had created the column incorrectly — Prisma field `deliveryAddress String?` was missing `@map("delivery_address")` directive
+- Renamed column in Supabase: `ALTER TABLE transactions RENAME COLUMN "deliveryAddress" TO delivery_address`
+- Reloaded PostgREST schema cache: `NOTIFY pgrst, 'reload schema'`
+- Fixed Prisma schema: added `@map("delivery_address")` to `deliveryAddress` field
+- Verified no other camelCase columns remain in the transactions table
+
+Stage Summary:
+- **Root cause**: Column `deliveryAddress` created in camelCase instead of snake_case due to missing `@map()` in Prisma schema
+- **Fix**: Renamed column to `delivery_address` in PostgreSQL and added proper `@map()` directive in Prisma schema
+- Transaction creation (invoice) should now work correctly
