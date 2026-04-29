@@ -185,3 +185,23 @@ Work Log:
 
 Stage Summary:
 - All 9 BUGs + 1 IMP fixed. 40 error leaks plugged, 93 fire-and-forget wrapped, 4 timers unref'd, security headers active, token validation hardened. Dev server runs clean with `ignoreBuildErrors: false`.
+
+---
+Task ID: 9
+Agent: Main Agent
+Task: Complete CI/CD pipeline with GitHub Actions Docker build → GHCR push
+
+Work Log:
+- Created `.dockerignore` — excludes node_modules, .next, .env, logs, test files for efficient Docker builds
+- Created `.github/workflows/deploy.yml` — GitHub Actions workflow triggered on push to main:
+  - Uses QEMU + Buildx for ARM64 cross-compilation (Amlogic S9xx STB)
+  - Builds Docker image from multi-stage Dockerfile
+  - Pushes to `ghcr.io/henryarthanto/erpstb:latest` + SHA tag + build number tag
+  - Uses GitHub Actions cache (type=gha) for faster subsequent builds
+- Updated `setup-stb.sh` — rewrote for Docker-based deployment (removed Bun/systemd, added Docker + GHCR checks)
+- Committed and pushed to `github.com/henryarthanto/RAZKINDO-ERP` (main branch)
+
+Stage Summary:
+- Full CI/CD pipeline operational: push to main → GitHub Actions builds ARM64 Docker image → pushes to GHCR
+- STB pulls update via `docker compose pull` → `docker compose up -d --force-recreate`
+- Existing files verified: Dockerfile (multi-stage ARM64), docker-compose.yml, deploy.sh (Docker-based)
