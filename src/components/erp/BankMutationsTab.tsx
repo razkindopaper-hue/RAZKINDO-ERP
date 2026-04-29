@@ -131,9 +131,11 @@ export default function BankMutationsTab({ bankAccounts }: BankMutationsTabProps
   );
 
   // Fetch Moota banks
-  const { data: mootaBanksData, isLoading: banksLoading, refetch: refetchBanks } = useQuery({
+  const { data: mootaBanksData, isLoading: banksLoading, refetch: refetchBanks, error: banksError } = useQuery({
     queryKey: ['moota-banks'],
     queryFn: () => apiFetch<{ banks: MootaBank[] }>('/api/finance/moota/banks'),
+    retry: 1,
+    staleTime: 60000,
   });
   const mootaBanks = Array.isArray(mootaBanksData?.banks) ? mootaBanksData.banks : [];
 
@@ -346,13 +348,37 @@ export default function BankMutationsTab({ bankAccounts }: BankMutationsTabProps
           </div>
         </CardHeader>
         <CardContent className="px-4 sm:px-6 pt-0 space-y-3">
-          {/* Bank selector */}
-          <div className="flex flex-wrap gap-2">
-            {mootaBanks.length === 0 && !banksLoading && (
-              <p className="text-xs text-muted-foreground italic">
-                Belum ada bank terdaftar di Moota. Tambahkan bank di dashboard Moota.
+          {/* Error State */}
+          {banksError && (
+            <div className="p-3 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800">
+              <p className="text-sm text-red-600 dark:text-red-400 font-medium">Gagal memuat data bank dari Moota</p>
+              <p className="text-xs text-red-500 dark:text-red-500 mt-1">
+                {banksError instanceof Error ? banksError.message : 'Pastikan token Moota valid dan coba lagi.'}
               </p>
-            )}
+              <Button size="sm" variant="outline" className="mt-2 h-7 text-xs" onClick={() => refetchBanks()}>
+                <RefreshCw className="w-3 h-3 mr-1" /> Coba Lagi
+              </Button>
+            </div>
+          )}
+
+          {/* Loading state */}
+          {banksLoading && (
+            <div className="flex items-center justify-center py-6">
+              <RefreshCw className="w-4 h-4 animate-spin text-muted-foreground mr-2" />
+              <span className="text-sm text-muted-foreground">Menghubungkan ke Moota...</span>
+            </div>
+          )}
+
+          {/* No banks found */}
+          {!banksLoading && !banksError && mootaBanks.length === 0 && (
+            <p className="text-xs text-muted-foreground italic">
+              Belum ada bank terdaftar di Moota. Tambahkan bank di dashboard Moota.
+            </p>
+          )}
+
+          {/* Bank selector */}
+          {mootaBanks.length > 0 && (
+            <div className="flex flex-wrap gap-2">
             {mootaBanks.map((bank) => (
               <button
                 key={bank.id}
@@ -368,7 +394,8 @@ export default function BankMutationsTab({ bankAccounts }: BankMutationsTabProps
                 <span className="text-[10px] opacity-60">{bank.account_number}</span>
               </button>
             ))}
-          </div>
+            </div>
+          )}
 
           {/* Filters */}
           {selectedBankId && (
