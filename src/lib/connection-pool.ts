@@ -328,6 +328,8 @@ export async function closeAllPools(): Promise<void> {
     closers.push(
       _transactionPool.end().then(() => {
         console.log('[ConnectionPool:Tx] Pool closed');
+      }).catch((err) => {
+        console.warn('[ConnectionPool:Tx] Error closing pool:', err);
       })
     );
   }
@@ -336,6 +338,8 @@ export async function closeAllPools(): Promise<void> {
     closers.push(
       _sessionPool.end().then(() => {
         console.log('[ConnectionPool:Session] Pool closed');
+      }).catch((err) => {
+        console.warn('[ConnectionPool:Session] Error closing pool:', err);
       })
     );
   }

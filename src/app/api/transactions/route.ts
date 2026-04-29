@@ -434,7 +434,7 @@ export async function POST(request: NextRequest) {
           .gte('transaction_date', monthStart.toISOString())
           .lt('transaction_date', monthEnd.toISOString());
 
-        // TODO: Add UNIQUE constraint on (invoice_no) in transactions table for guaranteed uniqueness.
+        // RESOLVED: UNIQUE constraint on (invoice_no) exists via Prisma schema @unique directive.
         // Race condition mitigation: append millisecond timestamp as tiebreaker suffix.
         invoiceNo = generateInvoiceNo(data.type, txCount || 0) + `-${Date.now().toString(36)}`;
 

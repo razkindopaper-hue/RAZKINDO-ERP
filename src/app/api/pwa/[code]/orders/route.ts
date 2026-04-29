@@ -181,7 +181,7 @@ export async function POST(
         .select('*', { count: 'exact', head: true })
         .eq('type', 'sale')
         .gte('created_at', monthStart.toISOString());
-      // TODO: Add UNIQUE constraint on (invoice_no) in transactions table for guaranteed uniqueness.
+      // RESOLVED: UNIQUE constraint on (invoice_no) exists via Prisma schema @unique directive.
       // Race condition mitigation: append millisecond timestamp as tiebreaker suffix.
       const candidateInvoiceNo = generateInvoiceNo('sale', (txCount || 0) + invoiceRetries) + `-${Date.now().toString(36)}`;
       // Check if this invoice already exists (race condition guard)

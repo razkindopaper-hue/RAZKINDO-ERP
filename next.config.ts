@@ -6,9 +6,9 @@ const nextConfig: NextConfig = {
   output: "standalone",
   serverExternalPackages: ['pg', 'bcryptjs', '@prisma/client', 'prisma'],
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
   },
-  reactStrictMode: false,
+  reactStrictMode: true,
 
   ...(isSTB ? {
     experimental: {
