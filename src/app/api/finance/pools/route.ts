@@ -197,7 +197,7 @@ export async function PUT(request: NextRequest) {
         entityId: 'pool_hpp_paid_balance',
         userId: auth.userId,
         message: `Komposisi dana diperbarui: HPP ${currentHpp.toLocaleString('id-ID')} → ${finalHpp.toLocaleString('id-ID')}, Profit ${currentProfit.toLocaleString('id-ID')} → ${finalProfit.toLocaleString('id-ID')}, Lain-lain ${currentLainLain.toLocaleString('id-ID')} → ${finalLainLain.toLocaleString('id-ID')}, Total=${totalPool.toLocaleString('id-ID')}`
-      });
+      }));
     } catch { /* ignore */ }
 
     // Broadcast to all connected clients
@@ -273,7 +273,7 @@ export async function POST(request: NextRequest) {
         fireAndForget(createLog(db, {
           type: 'audit', action: 'pool_synced', entity: 'settings', entityId: 'pool_hpp_paid_balance', userId: auth.userId,
           message: `Pool disinkronkan: HPP=${hppPaidBalance.toLocaleString('id-ID')}, Profit=${profitPaidBalance.toLocaleString('id-ID')}, Lain-lain=${investorFund.toLocaleString('id-ID')} = Fisik ${totalPhysical.toLocaleString('id-ID')}`
-        });
+        }));
       } catch { /* ignore */ }
 
       wsFinanceUpdate({ action: 'pool_synced', hppPaidBalance, profitPaidBalance, investorFund });
@@ -305,7 +305,7 @@ export async function POST(request: NextRequest) {
         fireAndForget(createLog(db, {
           type: 'audit', action: 'finance_reconcile', entity: 'settings', entityId: 'pool_hpp_paid_balance', userId: auth.userId,
           message: `Rekonsiliasi: ${result.issues_count} masalah, auto_fix=${autoFix}, healthy=${result.is_healthy}`
-        });
+        }));
       } catch { /* ignore */ }
 
       return NextResponse.json(result);
@@ -350,7 +350,7 @@ export async function POST(request: NextRequest) {
         fireAndForget(createLog(db, {
           type: 'audit', action: 'lain_lain_transferred', entity: table, entityId: destinationId, userId: auth.userId,
           message: `Transfer Dana Lain-lain: Rp ${transferAmount.toLocaleString('id-ID')} → ${destinationType === 'cashbox' ? 'Brankas' : 'Rekening'} (${destinationId}). Sisa: Rp ${newLainLain.toLocaleString('id-ID')}`
-        });
+        }));
       } catch { /* ignore */ }
 
       wsFinanceUpdate({ action: 'lain_lain_transferred', amount: transferAmount, destinationType, destinationId });
@@ -423,7 +423,7 @@ export async function POST(request: NextRequest) {
         fireAndForget(createLog(db, {
           type: 'audit', action: 'pool_transfer', entity: 'settings', entityId: fromKey, userId: auth.userId,
           message: `Transfer Pool: Rp ${transferAmount.toLocaleString('id-ID')} dari ${fromLabel} → ${toLabel}. ${fromLabel}: → ${newFromBalance.toLocaleString('id-ID')}, ${toLabel}: → ${newToBalance.toLocaleString('id-ID')}`
-        });
+        }));
       } catch { /* ignore */ }
 
       // Broadcast

@@ -138,8 +138,10 @@ export async function PATCH(
       `)
       .single();
 
-    fireAndForget(createEvent(db, 'product_updated', { productId: id, productName: data.name || toCamelCase(product).name });
-    fireAndForget(createLog(db, { type: 'activity', userId: authUserId, action: 'product_updated', entity: 'product', entityId: id });
+    fireAndForget(createEvent(db, 'product_updated', { productId: id, productName: data.name || toCamelCase(product).name }));
+
+    fireAndForget(createLog(db, { type: 'activity', userId: authUserId, action: 'product_updated', entity: 'product', entityId: id }));
+
 
     return NextResponse.json({ product: toCamelCase(product) });
   } catch (error: any) {
@@ -184,8 +186,10 @@ export async function DELETE(
       .update({ is_active: false })
       .eq('id', id);
 
-    fireAndForget(createEvent(db, 'product_deleted', { productId: id, productName: toCamelCase(existing).name });
-    fireAndForget(createLog(db, { type: 'activity', userId: authUserId, action: 'product_deactivated', entity: 'product', entityId: id });
+    fireAndForget(createEvent(db, 'product_deleted', { productId: id, productName: toCamelCase(existing).name }));
+
+    fireAndForget(createLog(db, { type: 'activity', userId: authUserId, action: 'product_deactivated', entity: 'product', entityId: id }));
+
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

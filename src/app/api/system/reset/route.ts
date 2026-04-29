@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase';
 import { enforceSuperAdmin } from '@/lib/require-auth';
-import { createLog, fireAndForget, fireAndForget } from '@/lib/supabase-helpers';
+import { createLog, fireAndForget } from '@/lib/supabase-helpers';
 import { wsRefreshAll } from '@/lib/ws-dispatch';
 
 export async function POST(request: NextRequest) {

@@ -323,7 +323,7 @@ export async function POST(
       customerPhone: customer.phone,
       salesId: createdById,
       source: 'pwa',
-    }).catch(() => {});
+    })).catch(() => {});
 
     // Dispatch WebSocket update for real-time notification
     wsTransactionUpdate({ invoiceNo, type: 'sale', status: 'pending', unitId: customer.unit_id });

@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
       entity: 'supplier',
       entityId: supplierCamel.id,
       message: `Supplier ${supplierCamel.name} created`
-    });
+    }));
 
     return NextResponse.json({ supplier: supplierCamel });
   } catch (error: any) {

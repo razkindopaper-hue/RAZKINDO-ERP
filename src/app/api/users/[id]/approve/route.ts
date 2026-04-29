@@ -57,10 +57,11 @@ export async function POST(
       entity: 'user',
       entityId: id,
       message: `User ${userCamel.name} approved`,
-    });
+    }));
 
     // Create event
-    fireAndForget(createEvent(db, 'user_approved', { userId: id, userName: userCamel.name });
+    fireAndForget(createEvent(db, 'user_approved', { userId: id, userName: userCamel.name }));
+
 
     // Invalidate auth cache so the approved user can now log in
     invalidateUserAuthCache(id);

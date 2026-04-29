@@ -119,8 +119,9 @@ export async function POST(request: NextRequest) {
       throw error;
     }
 
-    fireAndForget(createEvent(db, 'finance_request_created', { requestId: financeRequest.id, type: data.type, amount: data.amount, description: data.description });
-    fireAndForget(createLog(db, { type: 'activity', userId: requestById, action: 'finance_request_created', entity: 'finance_request', entityId: financeRequest.id, message: `Request ${data.type} sebesar ${data.amount} dibuat` });
+    fireAndForget(createEvent(db, 'finance_request_created', { requestId: financeRequest.id, type: data.type, amount: data.amount, description: data.description }));
+
+    fireAndForget(createLog(db, { type: 'activity', userId: requestById, action: 'finance_request_created', entity: 'finance_request', entityId: financeRequest.id, message: `Request ${data.type} sebesar ${data.amount} dibuat` }));
 
     return NextResponse.json({ request: toCamelCase(financeRequest) });
   } catch (error) {

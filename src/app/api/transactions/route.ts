@@ -865,7 +865,7 @@ export async function POST(request: NextRequest) {
           entity: 'transaction',
           entityId: transactionId,
           payload: JSON.stringify({ type: data.type, total, invoiceNo, paymentMethod: data.paymentMethod })
-        });
+        }));
 
         // Create receivable for piutang/tempo sales AND cash sales with courier (courier collects payment)
         if (data.type === 'sale' && (paymentStatus === 'unpaid' || paymentStatus === 'partial') && (data.paymentMethod === 'piutang' || data.paymentMethod === 'tempo' || (data.paymentMethod === 'cash' && hasCourier))) {
@@ -949,7 +949,8 @@ export async function POST(request: NextRequest) {
       total,
       createdBy: transaction.createdBy?.name,
       courierId: cleanCourierId || null,
-    });
+    }));
+
 
     // Create courier-specific event so courier dashboard picks up new assignment
     if (cleanCourierId) {
@@ -960,7 +961,8 @@ export async function POST(request: NextRequest) {
         customerName: transaction.customer?.name || 'Walk-in',
         total,
         paymentMethod: data.paymentMethod,
-      });
+      }));
+
     }
 
     // Low stock alerts (fire-and-forget)
@@ -977,7 +979,8 @@ export async function POST(request: NextRequest) {
             productName: product.name,
             currentStock: product.global_stock,
             minStock: product.min_stock
-          });
+          }));
+
         }
       }
     }
@@ -1006,7 +1009,7 @@ export async function POST(request: NextRequest) {
         action: 'transaction_created_idempotent',
         entityId: idempotencyKey,
         payload: JSON.stringify({ transactionId: transaction.id, invoiceNo })
-      });
+      }));
     }
 
     // Add queue stats to response headers (non-breaking, informational)

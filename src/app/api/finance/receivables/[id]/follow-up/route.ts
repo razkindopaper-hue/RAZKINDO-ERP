@@ -68,7 +68,7 @@ export async function POST(
       entity: 'receivable',
       entityId: id,
       message: `Follow-up piutang: ${data.type} - ${data.note}`,
-    });
+    }));
 
     return NextResponse.json({ followUp: toCamelCase(followUp) });
   } catch (error: any) {

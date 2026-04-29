@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
       entity: 'cash_box',
       entityId: cashBox.id,
       message: `Cash box ${data.name} dibuat`
-    });
+    }));
     
     return NextResponse.json({ cashBox: toCamelCase(cashBox) });
   } catch (error) {

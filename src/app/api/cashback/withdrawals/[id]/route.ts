@@ -197,7 +197,7 @@ export async function PATCH(
       sourceType: data.source_type || null,
       destinationType: data.destinationType || null,
       rejectionReason: data.rejectionReason || null,
-    }).catch(() => {});
+    })).catch(() => {});
 
     return NextResponse.json({
       success: true,

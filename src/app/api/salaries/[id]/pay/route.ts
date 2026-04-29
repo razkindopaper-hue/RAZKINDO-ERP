@@ -153,11 +153,11 @@ export async function POST(
 
     eventPayload = { salaryId: id, userId: salary.user_id, amount: salary.total_amount };
 
-    fireAndForget(createLog(db, { type: 'audit', action: 'salary_paid', entity: 'salary', entityId: id, userId: auth.userId, message: `Gaji dibayarkan ke ${(salary as any).user?.name}: ${salary.total_amount} (Step 1: ${fundSource === 'hpp_paid' ? 'HPP Sudah Terbayar' : 'Profit Sudah Terbayar'}, Step 2: ${hasBankSource ? 'Rekening Bank' : 'Brankas'})` });
+    fireAndForget(createLog(db, { type: 'audit', action: 'salary_paid', entity: 'salary', entityId: id, userId: auth.userId, message: `Gaji dibayarkan ke ${(salary as any).user?.name}: ${salary.total_amount} (Step 1: ${fundSource === 'hpp_paid' ? 'HPP Sudah Terbayar' : 'Profit Sudah Terbayar'}, Step 2: ${hasBankSource ? 'Rekening Bank' : 'Brankas'})` }));
 
     // Create event outside
     if (eventPayload) {
-      fireAndForget(createEvent(db, 'salary_paid', eventPayload);
+      fireAndForget(createEvent(db, 'salary_paid', eventPayload));
     }
 
     wsSalaryUpdate({ salaryId: id, userId: salary.user_id });

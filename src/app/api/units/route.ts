@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
       entity: 'unit',
       entityId: unitCamel.id,
       message: `Unit ${name} created`
-    });
+    }));
 
     return NextResponse.json({ unit: unitCamel });
   } catch (error: any) {

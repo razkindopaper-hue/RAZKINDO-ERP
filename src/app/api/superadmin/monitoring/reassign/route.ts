@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
         oldSalesName, newSalesName, reason: reason || ''
       }),
       message: `SUPERADMIN: Pelanggan ${customer.name} dialihkan dari ${oldSalesName} ke ${newSalesName}${reason ? `. Alasan: ${reason}` : ''}`
-    });
+    }));
 
     return NextResponse.json({
       success: true, customer: toCamelCase(customer),

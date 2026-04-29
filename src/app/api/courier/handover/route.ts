@@ -204,13 +204,14 @@ export async function POST(request: NextRequest) {
       type: 'activity', userId: courierId, action: 'courier_cash_handover', entity: 'courier_handover', entityId: handoverId,
       payload: JSON.stringify({ amount: roundedAmount, financeRequestId, cashBoxId, courierNewBalance: newBalance, brankasNewBalance: brankasBalance }),
       message: `Kurir ${courier?.name || 'Unknown'} menyetor ${formatCurrency(roundedAmount)} ke brankas`,
-    });
+    }));
 
     fireAndForget(createEvent(db, 'courier_handover', {
       handoverId, courierId, courierName: courier?.name || 'Unknown',
       amount: roundedAmount, financeRequestId, cashBoxId, unitId,
       updatedBalance: newBalance, brankasBalance,
-    });
+    }));
+
 
     wsFinanceUpdate({ type: 'courier_handover', unitId });
     wsCourierUpdate({ courierId });

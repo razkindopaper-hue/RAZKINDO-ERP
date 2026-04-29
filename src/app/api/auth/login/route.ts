@@ -151,7 +151,7 @@ export async function POST(request: NextRequest) {
       userId: userCamel.id,
       action: 'login',
       message: `${userCamel.name} logged in`
-    });
+    }));
 
     const { password: _, ...userWithoutPassword } = userCamel!;
     const token = generateToken(userCamel.id);

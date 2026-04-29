@@ -95,10 +95,11 @@ export async function POST(
           entity: 'product',
           entityId: id,
           payload: JSON.stringify({ quantity, quantityInSubUnits, stockUnitType, type, stockType: 'centralized', newStock: newGlobalStock, newAvgHpp })
-        });
+        }));
 
         if (newGlobalStock <= productCamel.minStock) {
-          fireAndForget(createEvent(db, 'stock_low', { productId: id, productName: productCamel.name, currentStock: newGlobalStock, minStock: productCamel.minStock });
+          fireAndForget(createEvent(db, 'stock_low', { productId: id, productName: productCamel.name, currentStock: newGlobalStock, minStock: productCamel.minStock }));
+
         }
 
         wsStockUpdate({ productId: id, productName: productCamel.name });
@@ -122,7 +123,7 @@ export async function POST(
           entity: 'product',
           entityId: id,
           payload: JSON.stringify({ quantity, quantityInSubUnits, stockUnitType, type, stockType: 'centralized', newStock: newGlobalStock })
-        });
+        }));
 
         wsStockUpdate({ productId: id, productName: productCamel.name });
         return NextResponse.json({ product: { ...productCamel, globalStock: newGlobalStock, avgHpp: newAvgHpp } });
@@ -181,7 +182,7 @@ export async function POST(
         fireAndForget(createLog(db, {
           type: 'activity', action: 'stock_updated_per_unit', entity: 'product', entityId: id,
           payload: JSON.stringify({ quantity, quantityInSubUnits, stockUnitType, type, unitId, stockType: 'per_unit', newGlobalStock })
-        });
+        }));
 
         const { data: unit } = await db.from('units').select('*').eq('id', unitId).single();
         wsStockUpdate({ productId: id, productName: freshProduct.name || productCamel.name, unitId });
@@ -206,7 +207,7 @@ export async function POST(
         fireAndForget(createLog(db, {
           type: 'activity', action: 'stock_updated_per_unit', entity: 'product', entityId: id,
           payload: JSON.stringify({ quantity, quantityInSubUnits, stockUnitType, type, unitId, stockType: 'per_unit', newStock: updatedProduct?.global_stock })
-        });
+        }));
 
         const { data: unit } = await db.from('units').select('*').eq('id', unitId).single();
         // Fetch actual unit stock (not global stock)

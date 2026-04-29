@@ -288,7 +288,7 @@ export async function POST(
       picName: data.picName,
       phone,
       referralCustomerId,
-    }).catch(() => {});
+    })).catch(() => {});
 
     // ── Step 7: Send WhatsApp notification (fire-and-forget) ──
     try {

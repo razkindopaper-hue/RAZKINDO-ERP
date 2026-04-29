@@ -99,7 +99,8 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       newStatus: updateData.status || existing.status,
       assignedToId: updateData.assigned_to_id || existing.assigned_to_id,
       updatedById: authResult.userId,
-    });
+    }));
+
 
     return NextResponse.json({ task: toCamelCase(task) });
   } catch (error: any) {

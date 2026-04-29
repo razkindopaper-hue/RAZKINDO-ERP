@@ -157,7 +157,7 @@ export async function POST(
       bankName: data.bankName,
       accountNo: data.accountNo,
       accountHolder: data.accountHolder,
-    }).catch(() => {});
+    })).catch(() => {});
 
     // Send WhatsApp notification to sales/admin group
     try {

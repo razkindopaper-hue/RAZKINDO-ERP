@@ -182,10 +182,11 @@ export async function POST(request: NextRequest) {
       entity: 'product',
       entityId: productId,
       message: `Product ${data.name} created (stockType: ${stockType})`
-    });
+    }));
 
     // Create event
-    fireAndForget(createEvent(db, 'product_created', { productId, name: data.name, stockType });
+    fireAndForget(createEvent(db, 'product_created', { productId, name: data.name, stockType }));
+
 
     // Fetch the final product with unitProducts
     const { data: finalProduct } = await db

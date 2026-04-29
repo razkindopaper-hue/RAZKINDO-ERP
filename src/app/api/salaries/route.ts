@@ -163,8 +163,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Gagal membuat slip gaji: ' + errMsg }, { status: 500 });
     }
 
-    fireAndForget(createEvent(db, 'salary_request_created', { salaryId: salary.id, requestId: financeRequest.id, userId: data.userId, userName: userData?.name, amount: totalAmount, period: periodDesc });
-    fireAndForget(createLog(db, { type: 'activity', userId: requestById, action: 'salary_created', entity: 'salary', entityId: salary.id, payload: JSON.stringify({ userId: data.userId, amount: totalAmount, financeRequestId: financeRequest.id }), message: `Slip gaji dibuat untuk ${userData?.name}: ${totalAmount}` });
+    fireAndForget(createEvent(db, 'salary_request_created', { salaryId: salary.id, requestId: financeRequest.id, userId: data.userId, userName: userData?.name, amount: totalAmount, period: periodDesc }));
+
+    fireAndForget(createLog(db, { type: 'activity', userId: requestById, action: 'salary_created', entity: 'salary', entityId: salary.id, payload: JSON.stringify({ userId: data.userId, amount: totalAmount, financeRequestId: financeRequest.id }), message: `Slip gaji dibuat untuk ${userData?.name}: ${totalAmount}` }));
 
     return NextResponse.json({ salary: toCamelCase(salary) });
   } catch (error: any) {

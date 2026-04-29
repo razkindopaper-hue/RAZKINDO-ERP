@@ -242,7 +242,7 @@ export async function POST(request: NextRequest) {
       destinationType,
       destinationId,
       description: description.trim(),
-    }).catch(() => {});
+    })).catch(() => {});
 
     fireAndForget(createLog(db, {
       type: 'activity',
@@ -252,7 +252,7 @@ export async function POST(request: NextRequest) {
       entityId: finalResult?.requestId,
       message: `Pengeluaran ${formatRp(amount)} dari ${poolLabel} — ${destAccount.name}`,
       payload: JSON.stringify({ amount, fundSource, destinationType, description: description.trim() }),
-    }).catch(() => {});
+    })).catch(() => {});
 
     // Broadcast to all finance clients
     wsFinanceUpdate({ action: 'expense_created', amount, description: description.trim(), fundSource, destinationType }).catch(() => {});

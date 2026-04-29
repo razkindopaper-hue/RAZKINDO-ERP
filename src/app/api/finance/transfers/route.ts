@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
     const { data: transfer, error } = await db.from('fund_transfers').insert(insertData).select().single();
     if (error) throw error;
 
-    fireAndForget(createLog(db, { type: 'activity', userId: authResult.userId, action: 'fund_transfer_created', entity: 'fund_transfer', entityId: transfer.id, message: `Transfer dana sebesar ${data.amount} dibuat` });
+    fireAndForget(createLog(db, { type: 'activity', userId: authResult.userId, action: 'fund_transfer_created', entity: 'fund_transfer', entityId: transfer.id, message: `Transfer dana sebesar ${data.amount} dibuat` }));
 
     wsFinanceUpdate({ transferId: transfer.id, amount: data.amount, type: data.type });
 

@@ -80,7 +80,7 @@ export async function POST(
         entityId: id,
         userId,
         message: `Dana ditambahkan ke ${bank.name} (${bank.bank_name}): Rp ${roundedAmount.toLocaleString('id-ID')}. Saldo: ${currentBalance.toLocaleString('id-ID')} → ${newBalance.toLocaleString('id-ID')}. Dana Lain-lain: ${(newInvestorFund - roundedAmount).toLocaleString('id-ID')} → ${newInvestorFund.toLocaleString('id-ID')}${description ? `. Keterangan: ${description}` : ''}`
-      });
+      }));
     } catch { /* ignore */ }
 
     return NextResponse.json({

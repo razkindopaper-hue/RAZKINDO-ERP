@@ -182,7 +182,7 @@ export async function POST(
         type: txCamel.type,
         total: txCamel.total
       })
-    });
+    }));
 
     // Events outside (fire and forget)
     fireAndForget(createEvent(db, 'transaction_approved', {
@@ -191,7 +191,8 @@ export async function POST(
       type: txCamel.type,
       total: txCamel.total,
       profit: txCamel.totalProfit
-    });
+    }));
+
 
     // Check for low stock alerts
     for (const item of txCamel.items || []) {
@@ -212,7 +213,8 @@ export async function POST(
           productName: product.name,
           currentStock: product.global_stock,
           minStock: product.min_stock
-        });
+        }));
+
       }
     }
 

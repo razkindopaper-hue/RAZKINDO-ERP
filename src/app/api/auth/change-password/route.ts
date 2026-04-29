@@ -60,7 +60,8 @@ export async function POST(request: NextRequest) {
       userId,
       action: 'password_changed',
       message: `User changed their password`
-    });
+    }));
+
 
     return NextResponse.json({ message: 'Password berhasil diubah!' });
   } catch (error: any) {

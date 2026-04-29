@@ -113,7 +113,7 @@ export async function PATCH(
       entity: 'receivable',
       entityId: id,
       message: `Piutang ${existing.transaction?.invoice_no} diupdate: ${Object.keys(updateData).join(', ')}`,
-    });
+    }));
 
     return NextResponse.json({ receivable: toCamelCase(receivable) });
   } catch (error: any) {

@@ -171,7 +171,8 @@ export async function POST(request: NextRequest) {
       userName: userCamel.name,
       sent,
       timestamp: new Date().toISOString()
-    });
+    }));
+
 
     return NextResponse.json({
       message: sent

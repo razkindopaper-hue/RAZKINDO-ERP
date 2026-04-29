@@ -529,7 +529,7 @@ export async function POST(request: NextRequest) {
       courierId: deliveryType === 'courier' ? courierId : null,
       courierName: assignedCourier?.name || null,
       deliveryType: deliveryType || 'self',
-    }).catch(() => {});
+    })).catch(() => {});
 
     // Send WhatsApp notification to customer
     try {
@@ -614,7 +614,7 @@ export async function POST(request: NextRequest) {
         customerName: customer.name,
         customerPhone: customer.phone,
         amount: total,
-      }).catch(() => {});
+      })).catch(() => {});
     }
 
     return NextResponse.json({

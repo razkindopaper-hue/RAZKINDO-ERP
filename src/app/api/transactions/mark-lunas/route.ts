@@ -454,7 +454,7 @@ export async function POST(request: NextRequest) {
         cashBoxName: targetCashBoxName,
         bankAccountName: targetBankAccountName,
       }),
-    });
+    }));
 
     if (targetCashBoxId) {
       fireAndForget(createLog(db, {
@@ -470,7 +470,7 @@ export async function POST(request: NextRequest) {
           transactionId,
           invoiceNo: txCamel.invoiceNo,
         }),
-      });
+      }));
     }
     if (targetBankAccountId) {
       fireAndForget(createLog(db, {
@@ -486,7 +486,7 @@ export async function POST(request: NextRequest) {
           transactionId,
           invoiceNo: txCamel.invoiceNo,
         }),
-      });
+      }));
     }
 
     // ─── Create event ───
@@ -501,7 +501,7 @@ export async function POST(request: NextRequest) {
       cashbackEarned,
       markedBy: authUser.id,
       markedByRole: authUser.role,
-    }).catch(() => {});
+    })).catch(() => {});
 
     // ─── Send WhatsApp notification to customer ───
     try {

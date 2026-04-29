@@ -178,7 +178,8 @@ export async function POST(request: NextRequest) {
       userId: userCamel.id,
       action: 'password_reset',
       message: `Password reset via WhatsApp recovery code`
-    });
+    }));
+
 
     // Invalidate auth cache for this user
     const { invalidateUserAuthCache } = await import('@/lib/token');

@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
           userId: auth.userId,
           message: `Rekonsiliasi ledger: healthy=${result.isHealthy}, issues=${result.issues.length}`,
           payload: JSON.stringify(result),
-        });
+        }));
       } catch { /* ignore */ }
 
       return NextResponse.json({

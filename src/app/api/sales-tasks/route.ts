@@ -117,7 +117,8 @@ export async function POST(request: NextRequest) {
       assignedToId,
       assignedById: authResult.userId,
       dueDate: dueDate ? new Date(dueDate).toISOString() : null,
-    });
+    }));
+
 
     return NextResponse.json({ task: toCamelCase(task) }, { status: 201 });
   } catch (error: any) {

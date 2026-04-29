@@ -387,13 +387,14 @@ export async function POST(request: NextRequest) {
       entity: 'transaction',
       entityId: data.transactionId,
       payload: JSON.stringify({ amount: data.amount, method: data.paymentMethod })
-    });
+    }));
 
     fireAndForget(createEvent(db, 'payment_received', {
       transactionId: data.transactionId,
       invoiceNo: txCamel.invoiceNo,
       amount: data.amount
-    });
+    }));
+
 
     // Log for fund destination (only for sales)
     if (isSale && (data.cashBoxId || data.bankAccountId)) {
@@ -414,7 +415,7 @@ export async function POST(request: NextRequest) {
           transactionId: data.transactionId,
           invoiceNo: txCamel.invoiceNo
         })
-      });
+      }));
     }
 
     wsPaymentUpdate({ transactionId: data.transactionId, amount: data.amount });

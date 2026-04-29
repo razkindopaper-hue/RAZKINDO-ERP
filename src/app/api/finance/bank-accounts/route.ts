@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
       entity: 'bank_account',
       entityId: bankAccount.id,
       message: `Rekening bank ${data.name} dibuat`
-    });
+    }));
     
     return NextResponse.json({ bankAccount: toCamelCase(bankAccount) });
   } catch (error) {

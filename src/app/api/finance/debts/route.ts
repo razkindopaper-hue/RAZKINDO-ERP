@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
       entity: 'company_debt',
       entityId: debt.id,
       payload: JSON.stringify({ creditorName: data.creditorName, amount: data.totalAmount, debtType: data.debtType || 'supplier' }),
-    });
+    }));
 
     return NextResponse.json({ debt: toCamelCase(debt) });
   } catch (error) {

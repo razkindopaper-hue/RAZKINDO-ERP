@@ -126,7 +126,7 @@ export async function PUT(
         return NextResponse.json({ error: 'Saldo sumber tidak cukup' }, { status: 400 });
       }
 
-      fireAndForget(createLog(db, { type: 'activity', userId: authUserId, action: 'fund_transfer_completed', entity: 'fund_transfer', entityId: id, message: `Transfer dana Rp ${amount.toLocaleString('id-ID')} berhasil diproses` });
+      fireAndForget(createLog(db, { type: 'activity', userId: authUserId, action: 'fund_transfer_completed', entity: 'fund_transfer', entityId: id, message: `Transfer dana Rp ${amount.toLocaleString('id-ID')} berhasil diproses` }));
 
       wsFinanceUpdate({ type: 'transfer_completed', transferId: id, amount });
 
@@ -150,7 +150,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Transfer sudah diproses' }, { status: 400 });
     }
 
-    fireAndForget(createLog(db, { type: 'activity', userId: authUserId, action: `fund_transfer_${data.status}`, entity: 'fund_transfer', entityId: id, message: `Transfer dana ${data.status}` });
+    fireAndForget(createLog(db, { type: 'activity', userId: authUserId, action: `fund_transfer_${data.status}`, entity: 'fund_transfer', entityId: id, message: `Transfer dana ${data.status}` }));
 
     return NextResponse.json({ transfer: toCamelCase(updated) });
   } catch (error: any) {

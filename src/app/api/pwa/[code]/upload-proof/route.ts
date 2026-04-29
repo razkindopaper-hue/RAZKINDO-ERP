@@ -222,7 +222,7 @@ export async function POST(
       invoiceNo: transaction.invoice_no,
       customerName: customer.name,
       fileUrl,
-    }).catch(() => {});
+    })).catch(() => {});
 
     // Send WhatsApp notification to sales/admin group
     try {

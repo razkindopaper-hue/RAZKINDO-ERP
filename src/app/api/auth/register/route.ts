@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
         userId: userCamel.id,
         action: 'register_non_erp',
         message: `Non-ERP employee created: ${name} (${customRole.name})`
-      });
+      }));
 
       const { password: _, ...userWithoutPassword } = userCamel!;
       return NextResponse.json({
@@ -257,7 +257,7 @@ export async function POST(request: NextRequest) {
         userId: userCamel.id,
         action: 'register',
         message: `New user registered: ${validatedName} (${validatedRole}) — units: ${selectedUnitIds.join(', ') || 'none'}`
-      });
+      }));
 
       const { password: _, ...userWithoutPassword } = userCamel!;
 

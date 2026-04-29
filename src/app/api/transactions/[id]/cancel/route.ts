@@ -364,12 +364,14 @@ export async function POST(
       entity: 'transaction',
       entityId: id,
       message: 'Transaction ' + txCamel.invoiceNo + ' cancelled'
-    });
+    }));
+
 
     fireAndForget(createEvent(db, 'transaction_cancelled', {
       transactionId: id,
       invoiceNo: txCamel.invoiceNo
-    });
+    }));
+
 
     const { data: updatedTransaction, error: refetchError } = await db
       .from('transactions')

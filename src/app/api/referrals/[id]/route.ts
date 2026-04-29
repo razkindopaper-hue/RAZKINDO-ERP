@@ -136,7 +136,7 @@ export async function PATCH(
       businessName: referral.business_name,
       status: data.status,
       updatedBy: authUserId.user.name,
-    }).catch(() => {});
+    })).catch(() => {});
 
     return NextResponse.json({
       success: true,

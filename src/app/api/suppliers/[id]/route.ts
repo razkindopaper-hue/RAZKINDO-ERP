@@ -96,7 +96,7 @@ export async function PATCH(
       entity: 'supplier',
       entityId: id,
       message: `Supplier ${supplierCamel.name} diupdate`
-    });
+    }));
 
     return NextResponse.json({ supplier: supplierCamel });
   } catch (error: any) {
@@ -160,7 +160,7 @@ export async function DELETE(
       entity: 'supplier',
       entityId: id,
       message: `Supplier ${supplierCamel.name} dihapus`
-    });
+    }));
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

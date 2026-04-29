@@ -168,7 +168,7 @@ export async function POST(
       entity: 'company_debt',
       entityId: id,
       payload: JSON.stringify({ amount, fundSource, fundLabel, paymentSource, physLabel, bankAccountId, cashBoxId, newPaidAmount: ctx.newPaidAmount, newRemainingAmount: ctx.newRemainingAmount, newStatus: ctx.newStatus }),
-    });
+    }));
 
     wsFinanceUpdate({ type: 'debt_payment', debtId: id });
 

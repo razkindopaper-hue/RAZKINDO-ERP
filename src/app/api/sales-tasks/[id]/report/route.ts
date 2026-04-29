@@ -67,7 +67,8 @@ export async function POST(
       note,
       reportedById: authUserId,
       assignedToId: task.assigned_to_id,
-    });
+    }));
+
 
     return NextResponse.json({ report: toCamelCase(report) }, { status: 201 });
   } catch (error: any) {
