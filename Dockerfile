@@ -42,9 +42,9 @@ ENV NODE_ENV=production
 ENV STB_MODE=true
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Create non-root user for security
-RUN addgroup --system --gid 1001 nodejs && \
-    adduser --system --uid 1001 erp
+# Create non-root user for security (Debian commands)
+RUN groupadd --system --gid 1001 nodejs && \
+    useradd --system --uid 1001 --gid nodejs --no-create-home erp
 
 # Set working directory ownership
 RUN mkdir -p /app/db /app/logs && chown -R erp:nodejs /app
@@ -57,8 +57,8 @@ COPY --from=builder /app/public ./public/
 # Copy prisma schema (for db:push if needed)
 COPY --from=builder /app/prisma ./prisma/
 
-# Copy Caddyfile if exists
-COPY --from=builder /app/Caddyfile ./Caddyfile 2>/dev/null || true
+# Install curl for healthcheck
+RUN apt-get update -qq && apt-get install -y -qq --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
 
 # Switch to non-root user
 USER erp

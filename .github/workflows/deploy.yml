@@ -9,7 +9,11 @@ name: Build & Push Docker Image
 on:
   push:
     branches: [main]
-  workflow_dispatch: # Allow manual trigger
+  workflow_dispatch:
+
+concurrency:
+  group: docker-build
+  cancel-in-progress: false
 
 env:
   REGISTRY: ghcr.io
@@ -17,7 +21,9 @@ env:
 
 jobs:
   build-and-push:
+    name: 🐳 Build & Push Image
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: read
       packages: write
@@ -61,6 +67,3 @@ jobs:
           cache-to: type=gha,mode=max
           build-args: |
             NEXT_TELEMETRY_DISABLED=1
-
-      - name: Image digest
-        run: echo "Image pushed with digest ${{ steps.build.outputs.digest }}"
