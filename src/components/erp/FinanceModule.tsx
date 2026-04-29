@@ -46,6 +46,8 @@ import {
   ChevronRight,
   ArrowRightLeft,
   Landmark,
+  Receipt,
+  Banknote,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -1359,8 +1361,8 @@ export default function FinanceModule() {
               </SelectItem>
               <SelectItem value="mutations">
                 <span className="inline-flex items-center gap-2">
-                  <Landmark className="w-4 h-4" />
-                  <span>🏦 Mutasi Bank</span>
+                  <Receipt className="w-4 h-4 text-green-600" />
+                  <span>Mutasi Bank</span>
                 </span>
               </SelectItem>
               <SelectItem value="transfers">
@@ -1426,9 +1428,10 @@ export default function FinanceModule() {
               </span>
             )}
           </TabsTrigger>
-          <TabsTrigger value="mutations" className="shrink-0 whitespace-nowrap text-xs sm:text-sm gap-1 text-green-700 dark:text-green-400 font-semibold">
-            <Landmark className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-            🏦 Mutasi
+          <TabsTrigger value="mutations" className="shrink-0 whitespace-nowrap text-xs sm:text-sm gap-1 bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400">
+            <Receipt className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+            <span className="hidden sm:inline">Mutasi</span>
+            <span className="sm:hidden">Mutasi</span>
           </TabsTrigger>
           <TabsTrigger value="transfers" className="shrink-0 whitespace-nowrap text-xs sm:text-sm gap-1">
             <ArrowLeftRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />

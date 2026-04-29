@@ -315,11 +315,12 @@ export default function BankMutationsTab({ bankAccounts }: BankMutationsTabProps
           <div className="flex items-center justify-between gap-2">
             <div className="min-w-0">
               <CardTitle className="text-sm sm:text-base flex items-center gap-2">
-                <Building2 className="w-4 h-4 text-green-600" />
-                Mutasi Bank (Moota)
+                <Receipt className="w-4 h-4 text-green-600" />
+                Mutasi Bank
+                <span className="text-[10px] font-normal text-muted-foreground bg-muted px-1.5 py-0.5 rounded">Moota</span>
               </CardTitle>
               <CardDescription className="text-xs sm:text-sm">
-                Mutasi rekening bank terintegrasi Moota — klik mutasi untuk aksi
+                Mutasi rekening bank real-time — klik mutasi untuk aksi
               </CardDescription>
             </div>
             <div className="flex items-center gap-1.5">
