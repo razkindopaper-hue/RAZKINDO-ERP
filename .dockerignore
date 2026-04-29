@@ -1,0 +1,59 @@
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Build output
+.next
+out
+build
+dist
+
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+dev.log
+server.log
+*.log
+
+# Environment (injected via docker-compose volume)
+.env
+.env.local
+.env.*.local
+
+# Database files (persisted via volume)
+db/*.db
+db/*.db-journal
+db/.auth-secret
+db/*.secret
+db/*.key
+
+# Git
+.git
+.gitignore
+
+# CI/CD
+.github
+deploy.sh
+setup-stb.sh
+
+# Editor / IDE
+.vscode
+.idea
+*.swp
+*.swo
+.claude
+.z-ai-config
+
+# Misc
+.DS_Store
+*.pem
+*.tar.gz
+*.zip
+coverage
+test
+prompt
+skills
+*.tsbuildinfo
+next-env.d.ts
