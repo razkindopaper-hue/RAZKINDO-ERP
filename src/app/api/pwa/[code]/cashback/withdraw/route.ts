@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase';
-import { toCamelCase, createEvent, generateId } from '@/lib/supabase-helpers';
+import { toCamelCase, createEvent, generateId, fireAndForget } from '@/lib/supabase-helpers';
 import { getWhatsAppConfig, sendMessage, disableWhatsAppOnInvalidToken } from '@/lib/whatsapp';
 import { pwaCashbackLimiter } from '@/lib/rate-limiter';
 
@@ -148,7 +148,7 @@ export async function POST(
     });
 
     // Create event notification for super admin
-    createEvent(db, 'cashback_withdrawal_requested', {
+    fireAndForget(createEvent(db, 'cashback_withdrawal_requested', {
       withdrawalId,
       customerId: customer.id,
       customerName: customer.name,
@@ -191,7 +191,7 @@ export async function POST(
   } catch (error: any) {
     console.error('PWA cashback withdraw POST error:', error?.message || error);
     // Return more specific error so frontend can show useful message
-    const msg = error?.message || 'Terjadi kesalahan server';
+    const msg = 'Terjadi kesalahan server';
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

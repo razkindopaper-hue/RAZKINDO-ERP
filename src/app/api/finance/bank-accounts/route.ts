@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase';
 import { verifyAuthUser } from '@/lib/token';
 import { enforceFinanceRole } from '@/lib/require-auth';
-import { toCamelCase, rowsToCamelCase, toSnakeCase, createLog, generateId } from '@/lib/supabase-helpers';
+import { toCamelCase, rowsToCamelCase, toSnakeCase, createLog, generateId, fireAndForget } from '@/lib/supabase-helpers';
 
 export async function GET(request: NextRequest) {
   try {
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     const { data: bankAccount, error } = await db.from('bank_accounts').insert(insertData).select().single();
     if (error) throw error;
     
-    createLog(db, {
+    fireAndForget(createLog(db, {
       type: 'activity',
       userId: authResult.userId,
       action: 'bank_account_created',

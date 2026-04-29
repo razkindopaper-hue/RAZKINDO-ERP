@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase';
 import { verifyAuthUser } from '@/lib/token';
 import { enforceFinanceRole } from '@/lib/require-auth';
-import { toCamelCase, rowsToCamelCase, toSnakeCase, createLog, generateId } from '@/lib/supabase-helpers';
+import { toCamelCase, rowsToCamelCase, toSnakeCase, createLog, generateId, fireAndForget } from '@/lib/supabase-helpers';
 
 export async function GET(request: NextRequest) {
   try {
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     const { data: cashBox, error } = await db.from('cash_boxes').insert(insertData).select().single();
     if (error) throw error;
     
-    createLog(db, {
+    fireAndForget(createLog(db, {
       type: 'activity',
       userId: authResult.userId,
       action: 'cash_box_created',

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase';
 import { verifyAuthUser } from '@/lib/token';
-import { toCamelCase, toSnakeCase, createLog, createEvent, generateId } from '@/lib/supabase-helpers';
+import { toCamelCase, toSnakeCase, createLog, createEvent, generateId, fireAndForget } from '@/lib/supabase-helpers';
 import { wsDeliveryUpdate } from '@/lib/ws-dispatch';
 import { atomicUpdatePoolBalance } from '@/lib/atomic-ops';
 
@@ -194,15 +194,15 @@ export async function PATCH(request: NextRequest) {
           rpcError: lastError,
         });
       }
-      createLog(db, { type: 'activity', userId: courierId, action: 'courier_cash_collected', entity: 'transaction', entityId: transactionId, payload: JSON.stringify({ amount, invoiceNo: transaction.invoice_no, unitId: cashUnitId, newBalance: ccNewBalance, success: ccSuccess, lastError: ccSuccess ? undefined : lastError }), message: `Kurir ${courier.name} mengumpulkan ${formatCurrency(amount)} dari ${transaction.invoice_no}${ccSuccess ? '' : ` [GAGAL: ${lastError}]`}` });
+      fireAndForget(createLog(db, { type: 'activity', userId: courierId, action: 'courier_cash_collected', entity: 'transaction', entityId: transactionId, payload: JSON.stringify({ amount, invoiceNo: transaction.invoice_no, unitId: cashUnitId, newBalance: ccNewBalance, success: ccSuccess, lastError: ccSuccess ? undefined : lastError }), message: `Kurir ${courier.name} mengumpulkan ${formatCurrency(amount)} dari ${transaction.invoice_no}${ccSuccess ? '' : ` [GAGAL: ${lastError}]`}` });
     } else if (paymentMethod === 'cash' && amount && amount > 0 && !cashUnitId) {
       // Cash payment collected but no unit ID available — cannot credit courier cash
       console.error(`[COURIER DELIVER] WARNING: Cash payment collected but no unitId to credit courier cash. courier.unit_id=${courier.unit_id}, transaction.unit_id=${transaction.unit_id}`);
-      createLog(db, { type: 'activity', userId: courierId, action: 'courier_cash_collected_skip', entity: 'transaction', entityId: transactionId, payload: JSON.stringify({ amount, invoiceNo: transaction.invoice_no, courierUnitId: courier.unit_id, txUnitId: transaction.unit_id }), message: `Kurir ${courier.name} mengumpulkan ${formatCurrency(amount)} dari ${transaction.invoice_no} [DILEWATI: tidak ada unitId]` });
+      fireAndForget(createLog(db, { type: 'activity', userId: courierId, action: 'courier_cash_collected_skip', entity: 'transaction', entityId: transactionId, payload: JSON.stringify({ amount, invoiceNo: transaction.invoice_no, courierUnitId: courier.unit_id, txUnitId: transaction.unit_id }), message: `Kurir ${courier.name} mengumpulkan ${formatCurrency(amount)} dari ${transaction.invoice_no} [DILEWATI: tidak ada unitId]` });
     }
 
-    createLog(db, { type: 'activity', userId: courierId, action: 'delivery_completed', entity: 'transaction', entityId: transactionId, payload: JSON.stringify({ invoiceNo: transaction.invoice_no, customerName: (transaction.customer as any)?.name, paymentMethod, amount, commission }), message: `Pengiriman ${transaction.invoice_no} selesai oleh ${courier.name}` });
-    createEvent(db, 'transaction_delivered', { transactionId, invoiceNo: transaction.invoice_no, courierId, courierName: courier.name, customerName: (transaction.customer as any)?.name, paymentMethod, amount });
+    fireAndForget(createLog(db, { type: 'activity', userId: courierId, action: 'delivery_completed', entity: 'transaction', entityId: transactionId, payload: JSON.stringify({ invoiceNo: transaction.invoice_no, customerName: (transaction.customer as any)?.name, paymentMethod, amount, commission }), message: `Pengiriman ${transaction.invoice_no} selesai oleh ${courier.name}` });
+    fireAndForget(createEvent(db, 'transaction_delivered', { transactionId, invoiceNo: transaction.invoice_no, courierId, courierName: courier.name, customerName: (transaction.customer as any)?.name, paymentMethod, amount });
 
     wsDeliveryUpdate({ transactionId, courierId, status: 'delivered' });
 

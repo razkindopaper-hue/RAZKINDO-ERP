@@ -55,7 +55,7 @@ export function verifyAuthToken(authHeader: string | null): string | null {
   const token = authHeader.slice(7);
 
   // Guard against oversized tokens (DoS prevention)
-  if (token.length < 30 || token.length > 500) return null;
+  if (token.length < 100 || token.length > 500) return null;
 
   try {
     const decoded = Buffer.from(token, 'base64').toString('utf-8');
@@ -110,17 +110,13 @@ export async function verifyAuthUser(authHeader: string | null): Promise<string 
 
   const isActive = !!(user && user.is_active && user.status === 'approved');
 
-  // Evict oldest entries if cache is too large (LRU-like)
+  // Evict expired entries first, then oldest if still full
   if (_userCache.size >= USER_CACHE_MAX_SIZE) {
     cleanupUserCache();
-    // If still too large after cleanup, remove the first 100 entries
+    // If still too large after cleanup, remove 100 entries with oldest expiresAt
     if (_userCache.size >= USER_CACHE_MAX_SIZE) {
-      let count = 0;
-      for (const key of _userCache.keys()) {
-        _userCache.delete(key);
-        count++;
-        if (count >= 100) break;
-      }
+      const sorted = [..._userCache.entries()].sort((a, b) => a[1].expiresAt - b[1].expiresAt);
+      sorted.slice(0, 100).forEach(([key]) => _userCache.delete(key));
     }
   }
 

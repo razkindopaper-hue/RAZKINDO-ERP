@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase';
-import { toCamelCase, createLog } from '@/lib/supabase-helpers';
+import { toCamelCase, createLog, fireAndForget, fireAndForget } from '@/lib/supabase-helpers';
 import { verifyAndGetAuthUser } from '@/lib/token';
 import { wsCustomerUpdate } from '@/lib/ws-dispatch';
 
@@ -111,7 +111,7 @@ export async function PATCH(
       const oldSalesName = existingCamel.assignedTo?.name || 'Tidak ada';
       const newSalesName = targetUser?.name || 'Tidak ada';
 
-      createLog(db, {
+      fireAndForget(createLog(db, {
         type: 'audit',
         action: 'customer_reassigned',
         entity: 'Customer',
@@ -122,14 +122,14 @@ export async function PATCH(
           oldSalesName, newSalesName
         }),
         message: `Pelanggan ${customerCamel.name} dialihkan dari ${oldSalesName} ke ${newSalesName}`
-      });
+      }));
     }
 
     wsCustomerUpdate({ unitId: customerCamel.unitId });
     return NextResponse.json({ customer: { ...customerCamel, assignedTo: customerCamel.assignedTo || null } });
   } catch (error: any) {
     console.error('Update customer error:', error);
-    return NextResponse.json({ error: error?.message || 'Terjadi kesalahan server' }, { status: 500 });
+    return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
   }
 }
 
@@ -175,6 +175,6 @@ export async function DELETE(
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error('Delete customer error:', error);
-    return NextResponse.json({ error: error?.message || 'Terjadi kesalahan server' }, { status: 500 });
+    return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
   }
 }

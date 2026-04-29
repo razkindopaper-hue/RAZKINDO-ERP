@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase';
 import { verifyAuthUser } from '@/lib/token';
-import { toSnakeCase, createLog, createEvent, generateId } from '@/lib/supabase-helpers';
+import { toSnakeCase, createLog, createEvent, generateId, fireAndForget } from '@/lib/supabase-helpers';
 import { atomicUpdatePoolBalance, atomicUpdateBalance } from '@/lib/atomic-ops';
 import { financeEngine } from '@/lib/finance-engine';
 import { wsFinanceUpdate } from '@/lib/ws-dispatch';
@@ -235,7 +235,7 @@ export async function POST(request: NextRequest) {
 
     // Logging
     const finalResult = results['create-finance-request'];
-    createEvent(db, 'expense_created', {
+    fireAndForget(createEvent(db, 'expense_created', {
       requestId: finalResult?.requestId,
       amount,
       fundSource,
@@ -244,7 +244,7 @@ export async function POST(request: NextRequest) {
       description: description.trim(),
     }).catch(() => {});
 
-    createLog(db, {
+    fireAndForget(createLog(db, {
       type: 'activity',
       userId: authUserId,
       action: 'expense_created',

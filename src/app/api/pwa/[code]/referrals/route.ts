@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase';
-import { toCamelCase, createEvent, generateId, generateCustomerCode } from '@/lib/supabase-helpers';
+import { toCamelCase, createEvent, generateId, generateCustomerCode, fireAndForget } from '@/lib/supabase-helpers';
 import { getWhatsAppConfig, sendMessage, disableWhatsAppOnInvalidToken } from '@/lib/whatsapp';
 
 // =====================================================================
@@ -279,7 +279,7 @@ export async function POST(
     console.log('[PWA Referral] Referral created successfully:', referral.id);
 
     // ── Step 6: Create event notification (fire-and-forget) ──
-    createEvent(db, 'customer_referral_submitted', {
+    fireAndForget(createEvent(db, 'customer_referral_submitted', {
       referralId: referral.id,
       customerId: customer.id,
       customerName: customer.name,

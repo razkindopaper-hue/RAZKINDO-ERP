@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase';
-import { rowsToCamelCase, toCamelCase, createLog, generateId } from '@/lib/supabase-helpers';
+import { rowsToCamelCase, toCamelCase, createLog, generateId, fireAndForget } from '@/lib/supabase-helpers';
 import { verifyAuthUser } from '@/lib/token';
 
 export async function GET(request: NextRequest) {
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     console.error('Get units error:', error);
     return NextResponse.json(
-      { error: error?.message || 'Terjadi kesalahan server' },
+      { error: 'Terjadi kesalahan server' },
       { status: 500 }
     );
   }
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
     const unitCamel = toCamelCase(unit);
 
     // Create log (fire-and-forget)
-    createLog(db, {
+    fireAndForget(createLog(db, {
       type: 'activity',
       action: 'unit_created',
       entity: 'unit',
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('Create unit error:', error);
     return NextResponse.json(
-      { error: error?.message || 'Terjadi kesalahan server' },
+      { error: 'Terjadi kesalahan server' },
       { status: 500 }
     );
   }

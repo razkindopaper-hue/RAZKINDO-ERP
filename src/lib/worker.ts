@@ -46,13 +46,14 @@ async function main() {
   });
 
   // 4. Keep alive with periodic health check
-  setInterval(() => {
+  const _heartbeatTimer = setInterval(() => {
     const status = getQueueStatus();
     logInfo('Worker heartbeat', {
       fallbackJobs: status.fallbackJobs,
       processors: status.registeredProcessors.length,
     });
   }, 5 * 60 * 1000); // Every 5 minutes
+  if (_heartbeatTimer.unref) _heartbeatTimer.unref();
 }
 
 // Graceful shutdown

@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('Cashback config GET error:', error);
-    return NextResponse.json({ error: error?.message || 'Terjadi kesalahan server' }, { status: 500 });
+    return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
   }
 }
 
@@ -117,6 +117,6 @@ export async function PUT(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('Cashback config PUT error:', error);
-    return NextResponse.json({ error: error?.message || 'Terjadi kesalahan server' }, { status: 500 });
+    return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
   }
 }

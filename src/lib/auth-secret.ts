@@ -115,3 +115,9 @@ export function getAuthSecret(): string {
   _cachedSecret = AUTH_SECRET || getOrCreateFallbackSecret();
   return _cachedSecret;
 }
+
+// Startup validation — crash fast if production without AUTH_SECRET
+if (process.env.NODE_ENV === 'production' && !process.env.AUTH_SECRET) {
+  console.error('[Auth] FATAL: AUTH_SECRET harus di-set di .env production');
+  process.exit(1);
+}

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase';
-import { toCamelCase, createLog, createEvent } from '@/lib/supabase-helpers';
+import { toCamelCase, createLog, createEvent, fireAndForget } from '@/lib/supabase-helpers';
 import { verifyAndGetAuthUser } from '@/lib/token';
 import { wsTransactionUpdate, wsNotifyAll } from '@/lib/ws-dispatch';
 
@@ -171,7 +171,7 @@ export async function POST(
     }
 
     // Log
-    createLog(db, {
+    fireAndForget(createLog(db, {
       type: 'audit',
       action: 'transaction_approved',
       entity: 'transaction',
@@ -185,7 +185,7 @@ export async function POST(
     });
 
     // Events outside (fire and forget)
-    createEvent(db, 'transaction_approved', {
+    fireAndForget(createEvent(db, 'transaction_approved', {
       transactionId: id,
       invoiceNo: txCamel.invoiceNo,
       type: txCamel.type,
@@ -207,7 +207,7 @@ export async function POST(
       }
 
       if (product && product.global_stock <= product.min_stock) {
-        createEvent(db, 'stock_low', {
+        fireAndForget(createEvent(db, 'stock_low', {
           productId: product.id,
           productName: product.name,
           currentStock: product.global_stock,

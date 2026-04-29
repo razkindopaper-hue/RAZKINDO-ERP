@@ -52,7 +52,7 @@ export async function PATCH(
     if ((setting as any)?.error) {
       console.error('[Settings] DB error for key:', key, (setting as any).error);
       return NextResponse.json(
-        { error: (setting as any).error.message || 'Gagal menyimpan' },
+        { error: 'Gagal menyimpan pengaturan' },
         { status: 500 }
       );
     }

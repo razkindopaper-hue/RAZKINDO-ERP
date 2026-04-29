@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase';
 import { verifyAuthUser } from '@/lib/token';
-import { rowsToCamelCase, toSnakeCase, createLog, createEvent, toCamelCase, generateId } from '@/lib/supabase-helpers';
+import { rowsToCamelCase, toSnakeCase, createLog, createEvent, toCamelCase, generateId, fireAndForget } from '@/lib/supabase-helpers';
 import { enforceFinanceRole } from '@/lib/require-auth';
 import { validateBody, validateQuery, financeRequestSchemas } from '@/lib/validators';
 
@@ -119,8 +119,8 @@ export async function POST(request: NextRequest) {
       throw error;
     }
 
-    createEvent(db, 'finance_request_created', { requestId: financeRequest.id, type: data.type, amount: data.amount, description: data.description });
-    createLog(db, { type: 'activity', userId: requestById, action: 'finance_request_created', entity: 'finance_request', entityId: financeRequest.id, message: `Request ${data.type} sebesar ${data.amount} dibuat` });
+    fireAndForget(createEvent(db, 'finance_request_created', { requestId: financeRequest.id, type: data.type, amount: data.amount, description: data.description });
+    fireAndForget(createLog(db, { type: 'activity', userId: requestById, action: 'finance_request_created', entity: 'finance_request', entityId: financeRequest.id, message: `Request ${data.type} sebesar ${data.amount} dibuat` });
 
     return NextResponse.json({ request: toCamelCase(financeRequest) });
   } catch (error) {

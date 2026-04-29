@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase';
-import { toCamelCase, createLog } from '@/lib/supabase-helpers';
+import { toCamelCase, createLog, fireAndForget, fireAndForget } from '@/lib/supabase-helpers';
 import { verifyAuthUser } from '@/lib/token';
 import { wsCustomerUpdate } from '@/lib/ws-dispatch';
 
@@ -68,14 +68,14 @@ export async function POST(
     const customerCamel = toCamelCase(customer);
 
     // Log the lost action (fire-and-forget)
-    createLog(db, {
+    fireAndForget(createLog(db, {
       type: 'activity',
       action: 'customer_marked_lost',
       entity: 'Customer',
       entityId: id,
       payload: JSON.stringify({ reason: reason.trim() }),
       message: `Pelanggan ${customerCamel.name} ditandai sebagai lost. Alasan: ${reason.trim()}`
-    });
+    }));
 
     wsCustomerUpdate({ unitId: customerCamel.unitId });
     return NextResponse.json({
@@ -85,7 +85,7 @@ export async function POST(
   } catch (error: any) {
     console.error('Customer mark lost error:', error);
     return NextResponse.json(
-      { error: error?.message || 'Terjadi kesalahan server' },
+      { error: 'Terjadi kesalahan server' },
       { status: 500 }
     );
   }

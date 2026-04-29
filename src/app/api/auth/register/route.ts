@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase';
-import { toCamelCase, rowsToCamelCase, createLog, generateId } from '@/lib/supabase-helpers';
+import { toCamelCase, rowsToCamelCase, createLog, generateId, fireAndForget } from '@/lib/supabase-helpers';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { validateBody, authSchemas } from '@/lib/validators';
@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
         if (uuData) userUnits = rowsToCamelCase(uuData);
       } catch {}
 
-      createLog(db, {
+      fireAndForget(createLog(db, {
         type: 'activity',
         userId: userCamel.id,
         action: 'register_non_erp',
@@ -252,7 +252,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Create log
-      createLog(db, {
+      fireAndForget(createLog(db, {
         type: 'activity',
         userId: userCamel.id,
         action: 'register',
@@ -274,7 +274,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('Register error:', error);
     return NextResponse.json(
-      { error: error?.message || 'Terjadi kesalahan server' },
+      { error: 'Terjadi kesalahan server' },
       { status: 500 }
     );
   }

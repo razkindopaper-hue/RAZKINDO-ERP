@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase';
 import { enforceSuperAdmin } from '@/lib/require-auth';
-import { createLog } from '@/lib/supabase-helpers';
+import { createLog, fireAndForget, fireAndForget } from '@/lib/supabase-helpers';
 import { wsRefreshAll } from '@/lib/ws-dispatch';
 
 export async function POST(request: NextRequest) {
@@ -21,12 +21,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Log this destructive action
-    createLog(db, {
+    fireAndForget(createLog(db, {
       type: 'activity',
       userId,
       action: 'system_reset',
       message: `System reset: ${type}`
-    });
+    }));
 
     const results: { table: string; deleted: number }[] = [];
 

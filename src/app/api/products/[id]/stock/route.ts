@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase';
-import { toCamelCase, rowsToCamelCase, createLog, createEvent, generateId } from '@/lib/supabase-helpers';
+import { toCamelCase, rowsToCamelCase, createLog, createEvent, generateId, fireAndForget } from '@/lib/supabase-helpers';
 import { verifyAuthUser } from '@/lib/token';
 import { enforceSuperAdmin } from '@/lib/require-auth';
 import { wsStockUpdate } from '@/lib/ws-dispatch';
@@ -89,7 +89,7 @@ export async function POST(
         const newGlobalStock = Number((rpcResult as any)?.new_stock) || 0;
         const newAvgHpp = Number((rpcResult as any)?.new_avg_hpp) || 0;
 
-        createLog(db, {
+        fireAndForget(createLog(db, {
           type: 'activity',
           action: 'stock_updated_centralized',
           entity: 'product',
@@ -98,7 +98,7 @@ export async function POST(
         });
 
         if (newGlobalStock <= productCamel.minStock) {
-          createEvent(db, 'stock_low', { productId: id, productName: productCamel.name, currentStock: newGlobalStock, minStock: productCamel.minStock });
+          fireAndForget(createEvent(db, 'stock_low', { productId: id, productName: productCamel.name, currentStock: newGlobalStock, minStock: productCamel.minStock });
         }
 
         wsStockUpdate({ productId: id, productName: productCamel.name });
@@ -116,7 +116,7 @@ export async function POST(
         const newGlobalStock = updatedProduct?.global_stock || 0;
         const newAvgHpp = updatedProduct?.avg_hpp || 0;
 
-        createLog(db, {
+        fireAndForget(createLog(db, {
           type: 'activity',
           action: 'stock_updated_centralized',
           entity: 'product',
@@ -178,7 +178,7 @@ export async function POST(
         const newGlobalStock = updatedProduct?.global_stock || 0;
         const newAvgHpp = updatedProduct?.avg_hpp || 0;
 
-        createLog(db, {
+        fireAndForget(createLog(db, {
           type: 'activity', action: 'stock_updated_per_unit', entity: 'product', entityId: id,
           payload: JSON.stringify({ quantity, quantityInSubUnits, stockUnitType, type, unitId, stockType: 'per_unit', newGlobalStock })
         });
@@ -203,7 +203,7 @@ export async function POST(
         await db.rpc('recalc_global_stock', { p_product_id: id });
         const { data: updatedProduct } = await db.from('products').select('global_stock, avg_hpp').eq('id', id).single();
 
-        createLog(db, {
+        fireAndForget(createLog(db, {
           type: 'activity', action: 'stock_updated_per_unit', entity: 'product', entityId: id,
           payload: JSON.stringify({ quantity, quantityInSubUnits, stockUnitType, type, unitId, stockType: 'per_unit', newStock: updatedProduct?.global_stock })
         });

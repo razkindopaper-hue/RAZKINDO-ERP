@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase';
 import { verifyAuthUser } from '@/lib/token';
-import { toCamelCase, toSnakeCase, createLog, generateId } from '@/lib/supabase-helpers';
+import { toCamelCase, toSnakeCase, createLog, generateId, fireAndForget } from '@/lib/supabase-helpers';
 
 export async function POST(
   request: NextRequest,
@@ -61,7 +61,7 @@ export async function POST(
     await db.from('receivables').update(updateData).eq('id', id);
 
     // 3. Create log
-    createLog(db, {
+    fireAndForget(createLog(db, {
       type: 'activity',
       userId: authUserId,
       action: 'receivable_followup',
@@ -73,6 +73,6 @@ export async function POST(
     return NextResponse.json({ followUp: toCamelCase(followUp) });
   } catch (error: any) {
     console.error('Create follow-up error:', error);
-    return NextResponse.json({ error: error?.message || 'Terjadi kesalahan server' }, { status: 500 });
+    return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
   }
 }

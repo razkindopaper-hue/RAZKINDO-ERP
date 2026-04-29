@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase';
-import { toCamelCase } from '@/lib/supabase-helpers';
-import { createLog } from '@/lib/supabase-helpers';
+import { toCamelCase, createLog, fireAndForget } from '@/lib/supabase-helpers';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { getAuthSecret } from '@/lib/auth-secret';
@@ -147,7 +146,7 @@ export async function POST(request: NextRequest) {
     await db.from('users').update({ last_seen_at: new Date().toISOString() }).eq('id', userCamel.id);
 
     // Create log
-    createLog(db, {
+    fireAndForget(createLog(db, {
       type: 'activity',
       userId: userCamel.id,
       action: 'login',
@@ -160,6 +159,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ user: userWithoutPassword, token });
   } catch (error: any) {
     console.error('[Login] Server error:', error?.message || error);
-    return NextResponse.json({ error: error?.message || 'Terjadi kesalahan server' }, { status: 500 });
+    return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
   }
 }

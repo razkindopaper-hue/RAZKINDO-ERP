@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase';
-import { toCamelCase, createLog } from '@/lib/supabase-helpers';
+import { toCamelCase, createLog, fireAndForget, fireAndForget } from '@/lib/supabase-helpers';
 import { verifyAuthUser } from '@/lib/token';
 import { enforceSuperAdmin } from '@/lib/require-auth';
 import { wsCustomerUpdate } from '@/lib/ws-dispatch';
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
     const customerCamel = toCamelCase(customer);
 
     // Log the recycle action (fire-and-forget)
-    createLog(db, {
+    fireAndForget(createLog(db, {
       type: 'activity',
       action: 'customer_recycled',
       entity: 'Customer',
@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
         previousLostAt: existingCustomerCamel.lostAt
       }),
       message: `Pelanggan ${customerCamel.name} di-recycle kembali menjadi active`
-    });
+    }));
 
     wsCustomerUpdate({ unitId: customerCamel.unitId });
     return NextResponse.json({
@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('Customer recycle error:', error);
     return NextResponse.json(
-      { error: error?.message || 'Terjadi kesalahan server' },
+      { error: 'Terjadi kesalahan server' },
       { status: 500 }
     );
   }

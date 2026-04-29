@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase';
-import { toCamelCase } from '@/lib/supabase-helpers';
-import { createLog, createEvent } from '@/lib/supabase-helpers';
+import { toCamelCase, createLog, createEvent, fireAndForget } from '@/lib/supabase-helpers';
 import { enforceSuperAdmin } from '@/lib/require-auth';
 import { invalidateUserAuthCache } from '@/lib/token';
 import { wsUserUpdate } from '@/lib/ws-dispatch';
@@ -52,7 +51,7 @@ export async function POST(
     const userCamel = toCamelCase(user);
 
     // Create audit log
-    createLog(db, {
+    fireAndForget(createLog(db, {
       type: 'audit',
       action: 'user_approved',
       entity: 'user',
@@ -61,7 +60,7 @@ export async function POST(
     });
 
     // Create event
-    createEvent(db, 'user_approved', { userId: id, userName: userCamel.name });
+    fireAndForget(createEvent(db, 'user_approved', { userId: id, userName: userCamel.name });
 
     // Invalidate auth cache so the approved user can now log in
     invalidateUserAuthCache(id);

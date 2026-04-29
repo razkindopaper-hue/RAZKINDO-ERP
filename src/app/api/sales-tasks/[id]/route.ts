@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase';
 import { verifyAuthUser } from '@/lib/token';
 import { enforceSuperAdmin } from '@/lib/require-auth';
-import { toCamelCase, toSnakeCase, createEvent } from '@/lib/supabase-helpers';
+import { toCamelCase, toSnakeCase, createEvent, fireAndForget } from '@/lib/supabase-helpers';
 import { wsTaskUpdate } from '@/lib/ws-dispatch';
 
 interface RouteContext {
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
     return NextResponse.json({ task: toCamelCase(task) });
   } catch (error: any) {
     console.error('Get sales task detail error:', error);
-    return NextResponse.json({ error: error?.message || 'Terjadi kesalahan server' }, { status: 500 });
+    return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
   }
 }
 
@@ -93,7 +93,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
     wsTaskUpdate({ taskId: id, status: updateData.status || existing.status, assignedToId: updateData.assigned_to_id || existing.assigned_to_id });
 
-    createEvent(db, 'sales_task_updated', {
+    fireAndForget(createEvent(db, 'sales_task_updated', {
       taskId: id,
       changes: Object.keys(updateData),
       newStatus: updateData.status || existing.status,
@@ -104,7 +104,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     return NextResponse.json({ task: toCamelCase(task) });
   } catch (error: any) {
     console.error('Update sales task error:', error);
-    return NextResponse.json({ error: error?.message || 'Terjadi kesalahan server' }, { status: 500 });
+    return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
   }
 }
 
@@ -126,6 +126,6 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error('Delete sales task error:', error);
-    return NextResponse.json({ error: error?.message || 'Terjadi kesalahan server' }, { status: 500 });
+    return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
   }
 }

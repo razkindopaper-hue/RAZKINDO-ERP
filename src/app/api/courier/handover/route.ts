@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase';
 import { verifyAuthUser } from '@/lib/token';
-import { createLog, createEvent } from '@/lib/supabase-helpers';
+import { createLog, createEvent, fireAndForget } from '@/lib/supabase-helpers';
 import { wsFinanceUpdate, wsCourierUpdate } from '@/lib/ws-dispatch';
 
 function formatCurrency(amount: number): string {
@@ -200,13 +200,13 @@ export async function POST(request: NextRequest) {
     // Get courier name for logging
     const { data: courier } = await db.from('users').select('name').eq('id', courierId).single();
 
-    createLog(db, {
+    fireAndForget(createLog(db, {
       type: 'activity', userId: courierId, action: 'courier_cash_handover', entity: 'courier_handover', entityId: handoverId,
       payload: JSON.stringify({ amount: roundedAmount, financeRequestId, cashBoxId, courierNewBalance: newBalance, brankasNewBalance: brankasBalance }),
       message: `Kurir ${courier?.name || 'Unknown'} menyetor ${formatCurrency(roundedAmount)} ke brankas`,
     });
 
-    createEvent(db, 'courier_handover', {
+    fireAndForget(createEvent(db, 'courier_handover', {
       handoverId, courierId, courierName: courier?.name || 'Unknown',
       amount: roundedAmount, financeRequestId, cashBoxId, unitId,
       updatedBalance: newBalance, brankasBalance,

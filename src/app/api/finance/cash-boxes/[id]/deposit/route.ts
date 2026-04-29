@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase';
 import { enforceFinanceRole } from '@/lib/require-auth';
-import { toCamelCase } from '@/lib/supabase-helpers';
-import { createLog } from '@/lib/supabase-helpers';
+import { toCamelCase, createLog, generateId, fireAndForget } from '@/lib/supabase-helpers';
 import { atomicUpdateBalance } from '@/lib/atomic-ops';
 import { financeEngine } from '@/lib/finance-engine';
-import { generateId } from '@/lib/supabase-helpers';
 import { wsFinanceUpdate } from '@/lib/ws-dispatch';
 
 // POST /api/finance/cash-boxes/[id]/deposit
@@ -76,7 +74,7 @@ export async function POST(
 
     // Log
     try {
-      createLog(db, {
+      fireAndForget(createLog(db, {
         type: 'audit',
         action: 'cashbox_deposit',
         entity: 'cash_boxes',

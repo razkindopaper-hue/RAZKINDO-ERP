@@ -1,8 +1,7 @@
 import { db } from '@/lib/supabase';
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAndGetAuthUser } from '@/lib/token';
-import { toCamelCase } from '@/lib/supabase-helpers';
-import { createLog } from '@/lib/supabase-helpers';
+import { toCamelCase, createLog, fireAndForget } from '@/lib/supabase-helpers';
 
 /**
  * POST /api/superadmin/monitoring/reassign
@@ -61,7 +60,7 @@ export async function POST(request: NextRequest) {
 
     if (updateError) throw updateError;
 
-    createLog(db, {
+    fireAndForget(createLog(db, {
       type: 'audit',
       userId: result.userId,
       action: 'customer_reassigned_by_superadmin',
@@ -81,6 +80,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('[REASSIGN_CUSTOMER] Error:', error);
-    return NextResponse.json({ error: error?.message || 'Terjadi kesalahan server' }, { status: 500 });
+    return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
   }
 }

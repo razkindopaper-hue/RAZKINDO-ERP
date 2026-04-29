@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase';
-import { toCamelCase, rowsToCamelCase, createLog, generateId } from '@/lib/supabase-helpers';
+import { toCamelCase, rowsToCamelCase, createLog, generateId, fireAndForget, fireAndForget } from '@/lib/supabase-helpers';
 import { verifyAuthUser } from '@/lib/token';
 import { wsCustomerUpdate } from '@/lib/ws-dispatch';
 
@@ -36,7 +36,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     return NextResponse.json(
-      { error: error?.message || 'Terjadi kesalahan server' },
+      { error: 'Terjadi kesalahan server' },
       { status: 500 }
     );
   }
@@ -158,14 +158,14 @@ export async function POST(
       .eq('id', id);
 
     // Log the follow-up action (fire-and-forget)
-    createLog(db, {
+    fireAndForget(createLog(db, {
       type: 'activity',
       action: 'customer_follow_up',
       entity: 'Customer',
       entityId: id,
       payload: JSON.stringify({ type, note: note.trim(), outcome, nextFollowUpDate }),
       message: `Follow-up ${type} dicatat untuk pelanggan ${existingCustomerCamel.name}`
-    });
+    }));
 
     wsCustomerUpdate({ unitId: existingCustomer.unit_id });
     return NextResponse.json({
@@ -182,7 +182,7 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     return NextResponse.json(
-      { error: error?.message || 'Terjadi kesalahan server' },
+      { error: 'Terjadi kesalahan server' },
       { status: 500 }
     );
   }

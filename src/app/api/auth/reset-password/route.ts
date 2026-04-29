@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase';
-import { toCamelCase } from '@/lib/supabase-helpers';
-import { createLog } from '@/lib/supabase-helpers';
+import { toCamelCase, createLog, fireAndForget } from '@/lib/supabase-helpers';
 import bcrypt from 'bcryptjs';
 import { validateBody } from '@/lib/validators';
 import { z } from 'zod';
@@ -174,7 +173,7 @@ export async function POST(request: NextRequest) {
       .neq('id', resetCamel.id);
 
     // 4. Create log
-    createLog(db, {
+    fireAndForget(createLog(db, {
       type: 'activity',
       userId: userCamel.id,
       action: 'password_reset',
@@ -191,7 +190,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('Reset password error:', error);
     return NextResponse.json(
-      { error: error?.message || 'Terjadi kesalahan server' },
+      { error: 'Terjadi kesalahan server' },
       { status: 500 }
     );
   }

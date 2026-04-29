@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase';
-import { toCamelCase, createEvent, generateId } from '@/lib/supabase-helpers';
+import { toCamelCase, createEvent, generateId, fireAndForget } from '@/lib/supabase-helpers';
 import { verifyAndGetAuthUser } from '@/lib/token';
 import { atomicUpdateBalance, atomicUpdatePoolBalance } from '@/lib/atomic-ops';
 
@@ -188,7 +188,7 @@ export async function PATCH(
     }
 
     // Create event
-    createEvent(db, 'cashback_withdrawal_' + data.status, {
+    fireAndForget(createEvent(db, 'cashback_withdrawal_' + data.status, {
       withdrawalId: id,
       customerName: withdrawal.customer?.name,
       amount: withdrawal.amount,
@@ -211,6 +211,6 @@ export async function PATCH(
     });
   } catch (error: any) {
     console.error('Cashback withdrawal PATCH error:', error);
-    return NextResponse.json({ error: error?.message || 'Terjadi kesalahan server' }, { status: 500 });
+    return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
   }
 }

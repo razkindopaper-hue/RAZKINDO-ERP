@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase';
 import { enforceFinanceRole } from '@/lib/require-auth';
-import { toCamelCase, createLog, createEvent } from '@/lib/supabase-helpers';
+import { toCamelCase, createLog, createEvent, fireAndForget } from '@/lib/supabase-helpers';
 import { wsSalaryUpdate } from '@/lib/ws-dispatch';
 import { atomicUpdateBalance, atomicUpdatePoolBalance } from '@/lib/atomic-ops';
 
@@ -153,11 +153,11 @@ export async function POST(
 
     eventPayload = { salaryId: id, userId: salary.user_id, amount: salary.total_amount };
 
-    createLog(db, { type: 'audit', action: 'salary_paid', entity: 'salary', entityId: id, userId: auth.userId, message: `Gaji dibayarkan ke ${(salary as any).user?.name}: ${salary.total_amount} (Step 1: ${fundSource === 'hpp_paid' ? 'HPP Sudah Terbayar' : 'Profit Sudah Terbayar'}, Step 2: ${hasBankSource ? 'Rekening Bank' : 'Brankas'})` });
+    fireAndForget(createLog(db, { type: 'audit', action: 'salary_paid', entity: 'salary', entityId: id, userId: auth.userId, message: `Gaji dibayarkan ke ${(salary as any).user?.name}: ${salary.total_amount} (Step 1: ${fundSource === 'hpp_paid' ? 'HPP Sudah Terbayar' : 'Profit Sudah Terbayar'}, Step 2: ${hasBankSource ? 'Rekening Bank' : 'Brankas'})` });
 
     // Create event outside
     if (eventPayload) {
-      createEvent(db, 'salary_paid', eventPayload);
+      fireAndForget(createEvent(db, 'salary_paid', eventPayload);
     }
 
     wsSalaryUpdate({ salaryId: id, userId: salary.user_id });

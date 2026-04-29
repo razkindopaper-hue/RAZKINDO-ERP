@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase';
-import { toCamelCase, rowsToCamelCase, createLog, generateId } from '@/lib/supabase-helpers';
+import { toCamelCase, rowsToCamelCase, createLog, generateId, fireAndForget } from '@/lib/supabase-helpers';
 import { verifyAuthUser } from '@/lib/token';
 import { validateBody, validateQuery, supplierSchemas, commonSchemas } from '@/lib/validators';
 
@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     console.error('Get suppliers error:', error);
     return NextResponse.json(
-      { error: error?.message || 'Terjadi kesalahan server' },
+      { error: 'Terjadi kesalahan server' },
       { status: 500 }
     );
   }
@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
     const supplierCamel = toCamelCase(supplier);
 
     // Create log (fire-and-forget)
-    createLog(db, {
+    fireAndForget(createLog(db, {
       type: 'activity',
       action: 'supplier_created',
       entity: 'supplier',
@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('Create supplier error:', error);
     return NextResponse.json(
-      { error: error?.message || 'Terjadi kesalahan server' },
+      { error: 'Terjadi kesalahan server' },
       { status: 500 }
     );
   }

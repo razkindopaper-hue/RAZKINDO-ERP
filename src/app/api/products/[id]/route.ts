@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase';
-import { toCamelCase, toSnakeCase, generateId, createEvent, createLog } from '@/lib/supabase-helpers';
+import { toCamelCase, toSnakeCase, generateId, createEvent, createLog, fireAndForget } from '@/lib/supabase-helpers';
 import { verifyAuthUser } from '@/lib/token';
 
 export async function GET(
@@ -48,7 +48,7 @@ export async function GET(
   } catch (error: any) {
     console.error('Get product error:', error);
     return NextResponse.json(
-      { error: error?.message || 'Terjadi kesalahan server' },
+      { error: 'Terjadi kesalahan server' },
       { status: 500 }
     );
   }
@@ -138,14 +138,14 @@ export async function PATCH(
       `)
       .single();
 
-    createEvent(db, 'product_updated', { productId: id, productName: data.name || toCamelCase(product).name });
-    createLog(db, { type: 'activity', userId: authUserId, action: 'product_updated', entity: 'product', entityId: id });
+    fireAndForget(createEvent(db, 'product_updated', { productId: id, productName: data.name || toCamelCase(product).name });
+    fireAndForget(createLog(db, { type: 'activity', userId: authUserId, action: 'product_updated', entity: 'product', entityId: id });
 
     return NextResponse.json({ product: toCamelCase(product) });
   } catch (error: any) {
     console.error('Update product error:', error);
     return NextResponse.json(
-      { error: error?.message || 'Terjadi kesalahan server' },
+      { error: 'Terjadi kesalahan server' },
       { status: 500 }
     );
   }
@@ -184,14 +184,14 @@ export async function DELETE(
       .update({ is_active: false })
       .eq('id', id);
 
-    createEvent(db, 'product_deleted', { productId: id, productName: toCamelCase(existing).name });
-    createLog(db, { type: 'activity', userId: authUserId, action: 'product_deactivated', entity: 'product', entityId: id });
+    fireAndForget(createEvent(db, 'product_deleted', { productId: id, productName: toCamelCase(existing).name });
+    fireAndForget(createLog(db, { type: 'activity', userId: authUserId, action: 'product_deactivated', entity: 'product', entityId: id });
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error('Delete product error:', error);
     return NextResponse.json(
-      { error: error?.message || 'Terjadi kesalahan server' },
+      { error: 'Terjadi kesalahan server' },
       { status: 500 }
     );
   }

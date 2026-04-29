@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase';
-import { createLog } from '@/lib/supabase-helpers';
+import { createLog, fireAndForget } from '@/lib/supabase-helpers';
 import bcrypt from 'bcryptjs';
 import { verifyAuthUser, invalidateUserAuthCache } from '@/lib/token';
 import { validateBody, authSchemas } from '@/lib/validators';
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     invalidateUserAuthCache(userId);
 
     // Create log (fire-and-forget)
-    createLog(db, {
+    fireAndForget(createLog(db, {
       type: 'activity',
       userId,
       action: 'password_changed',
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('Change password error:', error);
     return NextResponse.json(
-      { error: error?.message || 'Terjadi kesalahan server' },
+      { error: 'Terjadi kesalahan server' },
       { status: 500 }
     );
   }

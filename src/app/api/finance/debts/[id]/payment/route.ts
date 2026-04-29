@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase';
 import { enforceFinanceRole } from '@/lib/require-auth';
-import { toCamelCase, rowsToCamelCase, toSnakeCase, createLog, generateId } from '@/lib/supabase-helpers';
+import { toCamelCase, rowsToCamelCase, toSnakeCase, createLog, generateId, fireAndForget } from '@/lib/supabase-helpers';
 import { atomicUpdateBalance, atomicUpdatePoolBalance } from '@/lib/atomic-ops';
 import { financeEngine } from '@/lib/finance-engine';
 import { wsFinanceUpdate } from '@/lib/ws-dispatch';
@@ -161,7 +161,7 @@ export async function POST(
     // Log with 2-step info
     const fundLabel = fundSource === 'hpp_paid' ? 'HPP Sudah Terbayar' : 'Profit Sudah Terbayar';
     const physLabel = paymentSource === 'bank' ? 'Rekening Bank' : 'Brankas';
-    createLog(db, {
+    fireAndForget(createLog(db, {
       type: 'activity',
       userId: auth.userId,
       action: 'company_debt_payment',

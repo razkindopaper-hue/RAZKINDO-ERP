@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase';
 import { verifyAuthUser } from '@/lib/token';
-import { toCamelCase, createLog, generateId } from '@/lib/supabase-helpers';
+import { toCamelCase, createLog, generateId, fireAndForget } from '@/lib/supabase-helpers';
 import { atomicUpdateBalance } from '@/lib/atomic-ops';
 import { financeEngine } from '@/lib/finance-engine';
 import { wsFinanceUpdate } from '@/lib/ws-dispatch';
@@ -126,7 +126,7 @@ export async function PUT(
         return NextResponse.json({ error: 'Saldo sumber tidak cukup' }, { status: 400 });
       }
 
-      createLog(db, { type: 'activity', userId: authUserId, action: 'fund_transfer_completed', entity: 'fund_transfer', entityId: id, message: `Transfer dana Rp ${amount.toLocaleString('id-ID')} berhasil diproses` });
+      fireAndForget(createLog(db, { type: 'activity', userId: authUserId, action: 'fund_transfer_completed', entity: 'fund_transfer', entityId: id, message: `Transfer dana Rp ${amount.toLocaleString('id-ID')} berhasil diproses` });
 
       wsFinanceUpdate({ type: 'transfer_completed', transferId: id, amount });
 
@@ -150,11 +150,11 @@ export async function PUT(
       return NextResponse.json({ error: 'Transfer sudah diproses' }, { status: 400 });
     }
 
-    createLog(db, { type: 'activity', userId: authUserId, action: `fund_transfer_${data.status}`, entity: 'fund_transfer', entityId: id, message: `Transfer dana ${data.status}` });
+    fireAndForget(createLog(db, { type: 'activity', userId: authUserId, action: `fund_transfer_${data.status}`, entity: 'fund_transfer', entityId: id, message: `Transfer dana ${data.status}` });
 
     return NextResponse.json({ transfer: toCamelCase(updated) });
   } catch (error: any) {
     console.error('Update fund transfer error:', error);
-    return NextResponse.json({ error: error?.message || 'Terjadi kesalahan server' }, { status: 500 });
+    return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
   }
 }

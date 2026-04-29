@@ -165,3 +165,23 @@ Stage Summary:
 - Finance module now has "Mutasi" tab showing real bank mutations from Moota
 - Click-to-action workflow: mutation → popup → choose action (lunas/pool/expense/salary)
 - Token scopes confirmed: api, user, bank, bank_read, mutation, mutation_read
+
+---
+Task ID: 8
+Agent: Main Agent
+Task: Apply all fixes from comprehensive security audit (BUG-01 through IMP-01)
+
+Work Log:
+- **BUG-01 (Login error leak)**: Removed `error?.message` from client response in `auth/login/route.ts` catch block. Server still logs full error via `console.error`.
+- **BUG-02 (ignoreBuildErrors)**: Changed `typescript.ignoreBuildErrors` from `true` to `false` in `next.config.ts`.
+- **BUG-03 (fireAndForget)**: Added `fireAndForget()` helper to `supabase-helpers.ts`. Wrapped all 93 unawaited `createLog`/`createEvent` calls across 53 API route files with `fireAndForget()`. Fixed duplicate imports in 7 files.
+- **BUG-04 (setInterval unref)**: Added `.unref()` to all 4 `setInterval` timers: `job-queue.ts`, `processors.ts` (2x), `worker.ts`.
+- **BUG-05 (Security headers)**: Added `X-Frame-Options: SAMEORIGIN`, `Content-Security-Policy` (connect-src: Supabase + Moota), `Strict-Transport-Security` (non-STB) to `next.config.ts`.
+- **BUG-06 (Token min length)**: Increased minimum token length from 30 to 100 in `token.ts`.
+- **BUG-07 (Error leaks)**: Bulk-replaced 40 instances of `error?.message || '...'` with generic messages across 26 API route files.
+- **BUG-08 (AUTH_SECRET startup)**: Added `process.exit(1)` crash-fast in `auth-secret.ts` for production without AUTH_SECRET.
+- **BUG-09 (Role bypass)**: Already implemented — verified register route blocks super_admin and validates custom roles.
+- **IMP-01 (Cache eviction)**: Rewrote eviction in `token.ts` — delete expired first, then oldest-by-expiresAt.
+
+Stage Summary:
+- All 9 BUGs + 1 IMP fixed. 40 error leaks plugged, 93 fire-and-forget wrapped, 4 timers unref'd, security headers active, token validation hardened. Dev server runs clean with `ignoreBuildErrors: false`.

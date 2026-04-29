@@ -64,6 +64,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('Get user error:', error);
-    return NextResponse.json({ error: error?.message || 'Terjadi kesalahan server' }, { status: 500 });
+    return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
   }
 }

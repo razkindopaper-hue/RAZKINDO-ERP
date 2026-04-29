@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase';
-import { toCamelCase, createLog, createEvent, generateId, generateInvoiceNo } from '@/lib/supabase-helpers';
+import { toCamelCase, createLog, createEvent, generateId, generateInvoiceNo, fireAndForget } from '@/lib/supabase-helpers';
 import { getWhatsAppConfig, sendMessage, renderMessageTemplate, disableWhatsAppOnInvalidToken } from '@/lib/whatsapp';
 import { verifyAndGetAuthUser } from '@/lib/token';
 import { wsTransactionUpdate, wsStockUpdate } from '@/lib/ws-dispatch';
@@ -858,7 +858,7 @@ export async function POST(request: NextRequest) {
         // ============================================================
 
         // Create log
-        createLog(db, {
+        fireAndForget(createLog(db, {
           type: 'activity',
           userId: data.createdById,
           action: 'transaction_created',
@@ -941,7 +941,7 @@ export async function POST(request: NextRequest) {
     Promise.all(stockDeductionLogs.map(logData => createLog(db, logData))).catch(console.error);
 
     // Create event (fire-and-forget)
-    createEvent(db, 'transaction_created', {
+    fireAndForget(createEvent(db, 'transaction_created', {
       transactionId: transaction.id,
       invoiceNo,
       type: data.type,
@@ -953,7 +953,7 @@ export async function POST(request: NextRequest) {
 
     // Create courier-specific event so courier dashboard picks up new assignment
     if (cleanCourierId) {
-      createEvent(db, 'courier_assigned', {
+      fireAndForget(createEvent(db, 'courier_assigned', {
         transactionId: transaction.id,
         invoiceNo,
         courierId: cleanCourierId,
@@ -972,7 +972,7 @@ export async function POST(request: NextRequest) {
         .in('id', productIds);
       for (const product of (productsAfterDeduction || [])) {
         if (product.global_stock <= product.min_stock) {
-          createEvent(db, 'stock_low', {
+          fireAndForget(createEvent(db, 'stock_low', {
             productId: product.id,
             productName: product.name,
             currentStock: product.global_stock,
@@ -1000,7 +1000,7 @@ export async function POST(request: NextRequest) {
 
     // Log idempotency key after successful transaction creation
     if (idempotencyKey) {
-      createLog(db, {
+      fireAndForget(createLog(db, {
         type: 'activity',
         userId: authUserId,
         action: 'transaction_created_idempotent',

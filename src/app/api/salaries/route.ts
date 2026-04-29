@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase';
-import { rowsToCamelCase, toSnakeCase, createLog, createEvent, toCamelCase, generateId } from '@/lib/supabase-helpers';
+import { rowsToCamelCase, toSnakeCase, createLog, createEvent, toCamelCase, generateId, fireAndForget } from '@/lib/supabase-helpers';
 import { enforceFinanceRole } from '@/lib/require-auth';
 
 export async function GET(request: NextRequest) {
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ salaries: mapped, stats });
   } catch (error: any) {
     console.error('Get salaries error:', error);
-    return NextResponse.json({ error: error?.message || 'Terjadi kesalahan server' }, { status: 500 });
+    return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
   }
 }
 
@@ -163,13 +163,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Gagal membuat slip gaji: ' + errMsg }, { status: 500 });
     }
 
-    createEvent(db, 'salary_request_created', { salaryId: salary.id, requestId: financeRequest.id, userId: data.userId, userName: userData?.name, amount: totalAmount, period: periodDesc });
-    createLog(db, { type: 'activity', userId: requestById, action: 'salary_created', entity: 'salary', entityId: salary.id, payload: JSON.stringify({ userId: data.userId, amount: totalAmount, financeRequestId: financeRequest.id }), message: `Slip gaji dibuat untuk ${userData?.name}: ${totalAmount}` });
+    fireAndForget(createEvent(db, 'salary_request_created', { salaryId: salary.id, requestId: financeRequest.id, userId: data.userId, userName: userData?.name, amount: totalAmount, period: periodDesc });
+    fireAndForget(createLog(db, { type: 'activity', userId: requestById, action: 'salary_created', entity: 'salary', entityId: salary.id, payload: JSON.stringify({ userId: data.userId, amount: totalAmount, financeRequestId: financeRequest.id }), message: `Slip gaji dibuat untuk ${userData?.name}: ${totalAmount}` });
 
     return NextResponse.json({ salary: toCamelCase(salary) });
   } catch (error: any) {
     console.error('[Salary POST] Unhandled error:', error);
-    const errMsg = error?.message || 'Terjadi kesalahan server';
+    const errMsg = 'Terjadi kesalahan server';
     return NextResponse.json({ error: errMsg }, { status: 500 });
   }
 }

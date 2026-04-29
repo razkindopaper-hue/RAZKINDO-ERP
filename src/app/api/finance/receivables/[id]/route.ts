@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase';
 import { verifyAuthUser } from '@/lib/token';
-import { toCamelCase, toSnakeCase, createLog } from '@/lib/supabase-helpers';
+import { toCamelCase, toSnakeCase, createLog, fireAndForget } from '@/lib/supabase-helpers';
 import { enforceFinanceRole } from '@/lib/require-auth';
 
 export async function GET(
@@ -50,7 +50,7 @@ export async function GET(
     return NextResponse.json({ receivable: mapped });
   } catch (error: any) {
     console.error('Get receivable error:', error);
-    return NextResponse.json({ error: error?.message || 'Terjadi kesalahan server' }, { status: 500 });
+    return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
   }
 }
 
@@ -106,7 +106,7 @@ export async function PATCH(
     `).single();
     if (error) throw error;
 
-    createLog(db, {
+    fireAndForget(createLog(db, {
       type: 'activity',
       userId: authUserId,  // Use authenticated user, not user-supplied data.updatedById
       action: 'receivable_updated',
@@ -118,7 +118,7 @@ export async function PATCH(
     return NextResponse.json({ receivable: toCamelCase(receivable) });
   } catch (error: any) {
     console.error('Update receivable error:', error);
-    return NextResponse.json({ error: error?.message || 'Terjadi kesalahan server' }, { status: 500 });
+    return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
   }
 }
 
@@ -145,6 +145,6 @@ export async function DELETE(
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error('Delete receivable error:', error);
-    return NextResponse.json({ error: error?.message || 'Terjadi kesalahan server' }, { status: 500 });
+    return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
   }
 }

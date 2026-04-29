@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase';
-import { toCamelCase, createEvent, generateId } from '@/lib/supabase-helpers';
+import { toCamelCase, createEvent, generateId, fireAndForget } from '@/lib/supabase-helpers';
 import { verifyAndGetAuthUser } from '@/lib/token';
 
 // =====================================================================
@@ -130,7 +130,7 @@ export async function PATCH(
     }
 
     // Create event
-    createEvent(db, 'referral_status_updated', {
+    fireAndForget(createEvent(db, 'referral_status_updated', {
       referralId: id,
       customerName: referral.customer?.name,
       businessName: referral.business_name,

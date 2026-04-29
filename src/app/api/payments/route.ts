@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase';
-import { toCamelCase, rowsToCamelCase, createLog, createEvent, generateId } from '@/lib/supabase-helpers';
+import { toCamelCase, rowsToCamelCase, createLog, createEvent, generateId, fireAndForget } from '@/lib/supabase-helpers';
 import { verifyAuthUser } from '@/lib/token';
 import { wsPaymentUpdate } from '@/lib/ws-dispatch';
 import { atomicUpdateBalance, atomicUpdatePoolBalance } from '@/lib/atomic-ops';
@@ -380,7 +380,7 @@ export async function POST(request: NextRequest) {
     const payment = createdPayment;
 
     // Fire-and-forget operations (outside transaction)
-    createLog(db, {
+    fireAndForget(createLog(db, {
       type: 'activity',
       userId: authUserId,
       action: 'payment_created',
@@ -389,7 +389,7 @@ export async function POST(request: NextRequest) {
       payload: JSON.stringify({ amount: data.amount, method: data.paymentMethod })
     });
 
-    createEvent(db, 'payment_received', {
+    fireAndForget(createEvent(db, 'payment_received', {
       transactionId: data.transactionId,
       invoiceNo: txCamel.invoiceNo,
       amount: data.amount
@@ -401,7 +401,7 @@ export async function POST(request: NextRequest) {
       const destLabel = data.paymentMethod === 'cash'
         ? (paymentCamel.cashBox?.name || 'Brankas')
         : (paymentCamel.bankAccount?.name || 'Akun Bank');
-      createLog(db, {
+      fireAndForget(createLog(db, {
         type: 'activity',
         userId: authUserId,
         action: 'payment_deposited',

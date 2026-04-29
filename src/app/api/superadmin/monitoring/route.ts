@@ -230,6 +230,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('[SUPERADMIN_MONITORING] Error:', error);
-    return NextResponse.json({ error: error?.message || 'Terjadi kesalahan server' }, { status: 500 });
+    return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
   }
 }

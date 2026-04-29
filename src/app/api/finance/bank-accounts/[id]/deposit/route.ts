@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase';
 import { enforceFinanceRole } from '@/lib/require-auth';
-import { toCamelCase } from '@/lib/supabase-helpers';
-import { createLog } from '@/lib/supabase-helpers';
+import { toCamelCase, createLog, generateId, fireAndForget } from '@/lib/supabase-helpers';
 import { atomicUpdateBalance } from '@/lib/atomic-ops';
 import { financeEngine } from '@/lib/finance-engine';
-import { generateId } from '@/lib/supabase-helpers';
 
 // POST /api/finance/bank-accounts/[id]/deposit
 // Tambah dana ke rekening bank → otomatis masuk ke Dana Lain-lain di pool
@@ -75,7 +73,7 @@ export async function POST(
 
     // Log
     try {
-      createLog(db, {
+      fireAndForget(createLog(db, {
         type: 'audit',
         action: 'bank_deposit',
         entity: 'bank_accounts',

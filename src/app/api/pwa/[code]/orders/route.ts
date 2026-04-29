@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase';
-import { toCamelCase, createEvent, generateId, generateInvoiceNo } from '@/lib/supabase-helpers';
+import { toCamelCase, createEvent, generateId, generateInvoiceNo, fireAndForget } from '@/lib/supabase-helpers';
 import { getWhatsAppConfig, sendMessage, disableWhatsAppOnInvalidToken } from '@/lib/whatsapp';
 import { wsTransactionUpdate } from '@/lib/ws-dispatch';
 import { pwaOrderLimiter } from '@/lib/rate-limiter';
@@ -313,7 +313,7 @@ export async function POST(
     }
 
     // Create event for notification
-    createEvent(db, 'pwa_order_pending', {
+    fireAndForget(createEvent(db, 'pwa_order_pending', {
       transactionId,
       invoiceNo,
       type: 'sale',

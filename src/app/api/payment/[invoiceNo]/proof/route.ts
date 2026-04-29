@@ -4,7 +4,7 @@ import { existsSync } from 'fs';
 import path from 'path';
 import sharp from 'sharp';
 import { db } from '@/lib/supabase';
-import { toCamelCase, generateId, createEvent } from '@/lib/supabase-helpers';
+import { toCamelCase, generateId, createEvent, fireAndForget } from '@/lib/supabase-helpers';
 import { formatCurrency } from '@/lib/erp-helpers';
 import { getWhatsAppConfig, sendMessage, disableWhatsAppOnInvalidToken } from '@/lib/whatsapp';
 import { wsEmit } from '@/lib/ws-dispatch';
@@ -253,7 +253,7 @@ export async function POST(
     })();
 
     // --- Fire-and-forget: Create event ---
-    createEvent(db, 'payment_proof_uploaded', {
+    fireAndForget(createEvent(db, 'payment_proof_uploaded', {
       transactionId: transaction.id,
       invoiceNo,
       customerName: customerName || null,

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase';
-import { rowsToCamelCase, toCamelCase, toSnakeCase, createLog, createEvent, generateId } from '@/lib/supabase-helpers';
+import { rowsToCamelCase, toCamelCase, toSnakeCase, createLog, createEvent, generateId, fireAndForget } from '@/lib/supabase-helpers';
 import { verifyAndGetAuthUser, verifyAuthUser } from '@/lib/token';
 import { wsStockUpdate } from '@/lib/ws-dispatch';
 import { validateBody, validateQuery, productSchemas, commonSchemas } from '@/lib/validators';
@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     console.error('Get products error:', error);
     return NextResponse.json(
-      { error: error?.message || 'Terjadi kesalahan server' },
+      { error: 'Terjadi kesalahan server' },
       { status: 500 }
     );
   }
@@ -176,7 +176,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create log
-    createLog(db, {
+    fireAndForget(createLog(db, {
       type: 'activity',
       action: 'product_created',
       entity: 'product',
@@ -185,7 +185,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Create event
-    createEvent(db, 'product_created', { productId, name: data.name, stockType });
+    fireAndForget(createEvent(db, 'product_created', { productId, name: data.name, stockType });
 
     // Fetch the final product with unitProducts
     const { data: finalProduct } = await db
@@ -203,7 +203,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('Create product error:', error);
     return NextResponse.json(
-      { error: error?.message || 'Terjadi kesalahan server' },
+      { error: 'Terjadi kesalahan server' },
       { status: 500 }
     );
   }

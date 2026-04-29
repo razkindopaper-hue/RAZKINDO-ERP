@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase';
 import { verifyAuthUser } from '@/lib/token';
 import { enforceFinanceRole } from '@/lib/require-auth';
-import { rowsToCamelCase, toSnakeCase, createLog, toCamelCase, generateId } from '@/lib/supabase-helpers';
+import { rowsToCamelCase, toSnakeCase, createLog, toCamelCase, generateId, fireAndForget } from '@/lib/supabase-helpers';
 import { wsFinanceUpdate } from '@/lib/ws-dispatch';
 
 export async function GET(request: NextRequest) {
@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
     const { data: transfer, error } = await db.from('fund_transfers').insert(insertData).select().single();
     if (error) throw error;
 
-    createLog(db, { type: 'activity', userId: authResult.userId, action: 'fund_transfer_created', entity: 'fund_transfer', entityId: transfer.id, message: `Transfer dana sebesar ${data.amount} dibuat` });
+    fireAndForget(createLog(db, { type: 'activity', userId: authResult.userId, action: 'fund_transfer_created', entity: 'fund_transfer', entityId: transfer.id, message: `Transfer dana sebesar ${data.amount} dibuat` });
 
     wsFinanceUpdate({ transferId: transfer.id, amount: data.amount, type: data.type });
 

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase';
 import { verifyAuthUser } from '@/lib/token';
 import { enforceFinanceRole } from '@/lib/require-auth';
-import { createLog, generateId } from '@/lib/supabase-helpers';
+import { createLog, generateId, fireAndForget } from '@/lib/supabase-helpers';
 import { getPoolBalance } from '@/lib/atomic-ops';
 import { financeEngine } from '@/lib/finance-engine';
 import { wsFinanceUpdate } from '@/lib/ws-dispatch';
@@ -190,7 +190,7 @@ export async function PUT(request: NextRequest) {
 
     // Audit log with before/after
     try {
-      createLog(db, {
+      fireAndForget(createLog(db, {
         type: 'audit',
         action: 'pool_balances_updated',
         entity: 'settings',
@@ -270,7 +270,7 @@ export async function POST(request: NextRequest) {
       await db.from('settings').upsert({ key: 'pool_investor_fund', value: JSON.stringify(investorFund) }, { onConflict: 'key' });
 
       try {
-        createLog(db, {
+        fireAndForget(createLog(db, {
           type: 'audit', action: 'pool_synced', entity: 'settings', entityId: 'pool_hpp_paid_balance', userId: auth.userId,
           message: `Pool disinkronkan: HPP=${hppPaidBalance.toLocaleString('id-ID')}, Profit=${profitPaidBalance.toLocaleString('id-ID')}, Lain-lain=${investorFund.toLocaleString('id-ID')} = Fisik ${totalPhysical.toLocaleString('id-ID')}`
         });
@@ -302,7 +302,7 @@ export async function POST(request: NextRequest) {
       }
 
       try {
-        createLog(db, {
+        fireAndForget(createLog(db, {
           type: 'audit', action: 'finance_reconcile', entity: 'settings', entityId: 'pool_hpp_paid_balance', userId: auth.userId,
           message: `Rekonsiliasi: ${result.issues_count} masalah, auto_fix=${autoFix}, healthy=${result.is_healthy}`
         });
@@ -347,7 +347,7 @@ export async function POST(request: NextRequest) {
       );
 
       try {
-        createLog(db, {
+        fireAndForget(createLog(db, {
           type: 'audit', action: 'lain_lain_transferred', entity: table, entityId: destinationId, userId: auth.userId,
           message: `Transfer Dana Lain-lain: Rp ${transferAmount.toLocaleString('id-ID')} → ${destinationType === 'cashbox' ? 'Brankas' : 'Rekening'} (${destinationId}). Sisa: Rp ${newLainLain.toLocaleString('id-ID')}`
         });
@@ -420,7 +420,7 @@ export async function POST(request: NextRequest) {
 
       // Audit log
       try {
-        createLog(db, {
+        fireAndForget(createLog(db, {
           type: 'audit', action: 'pool_transfer', entity: 'settings', entityId: fromKey, userId: auth.userId,
           message: `Transfer Pool: Rp ${transferAmount.toLocaleString('id-ID')} dari ${fromLabel} → ${toLabel}. ${fromLabel}: → ${newFromBalance.toLocaleString('id-ID')}, ${toLabel}: → ${newToBalance.toLocaleString('id-ID')}`
         });

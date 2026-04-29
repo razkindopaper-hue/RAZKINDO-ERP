@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase';
-import { toCamelCase, createEvent, generateId, createLog } from '@/lib/supabase-helpers';
+import { toCamelCase, createEvent, generateId, createLog, fireAndForget } from '@/lib/supabase-helpers';
 import { verifyAndGetAuthUser } from '@/lib/token';
 import { getWhatsAppConfig, sendMessage, disableWhatsAppOnInvalidToken } from '@/lib/whatsapp';
 import { atomicUpdateBalance, atomicUpdatePoolBalance } from '@/lib/atomic-ops';
@@ -441,7 +441,7 @@ export async function POST(request: NextRequest) {
     } // end if(customer) cashback block
 
     // ─── Create logs ───
-    createLog(db, {
+    fireAndForget(createLog(db, {
       type: 'activity',
       userId: authUser.id,
       action: 'payment_created',
@@ -457,7 +457,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (targetCashBoxId) {
-      createLog(db, {
+      fireAndForget(createLog(db, {
         type: 'activity',
         userId: authUser.id,
         action: 'payment_deposited',
@@ -473,7 +473,7 @@ export async function POST(request: NextRequest) {
       });
     }
     if (targetBankAccountId) {
-      createLog(db, {
+      fireAndForget(createLog(db, {
         type: 'activity',
         userId: authUser.id,
         action: 'payment_deposited',
@@ -490,7 +490,7 @@ export async function POST(request: NextRequest) {
     }
 
     // ─── Create event ───
-    createEvent(db, 'transaction_marked_lunas', {
+    fireAndForget(createEvent(db, 'transaction_marked_lunas', {
       transactionId,
       invoiceNo: txCamel.invoiceNo,
       type: 'sale',

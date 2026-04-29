@@ -211,7 +211,8 @@ export async function processFallbackQueue(): Promise<void> {
 }
 
 // Process fallback queue every 5 seconds
-setInterval(processFallbackQueue, FALLBACK_PROCESS_INTERVAL);
+const _fallbackQueueTimer = setInterval(processFallbackQueue, FALLBACK_PROCESS_INTERVAL);
+if (_fallbackQueueTimer.unref) _fallbackQueueTimer.unref();
 
 /**
  * Get queue health status

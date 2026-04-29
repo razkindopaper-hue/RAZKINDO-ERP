@@ -4,7 +4,7 @@ import { existsSync } from 'fs';
 import path from 'path';
 import sharp from 'sharp';
 import { db } from '@/lib/supabase';
-import { toCamelCase, generateId, createEvent } from '@/lib/supabase-helpers';
+import { toCamelCase, generateId, createEvent, fireAndForget } from '@/lib/supabase-helpers';
 import { getWhatsAppConfig, sendMessage, disableWhatsAppOnInvalidToken } from '@/lib/whatsapp';
 import { getUploadDir } from '@/lib/paths';
 
@@ -217,7 +217,7 @@ export async function POST(
     }
 
     // Create event notification
-    createEvent(db, 'payment_proof_uploaded', {
+    fireAndForget(createEvent(db, 'payment_proof_uploaded', {
       transactionId: transaction.id,
       invoiceNo: transaction.invoice_no,
       customerName: customer.name,

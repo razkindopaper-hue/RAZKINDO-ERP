@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase';
 import { verifyAuthUser } from '@/lib/token';
 import { enforceSuperAdmin } from '@/lib/require-auth';
-import { rowsToCamelCase, toCamelCase, toSnakeCase, createEvent, generateId } from '@/lib/supabase-helpers';
+import { rowsToCamelCase, toCamelCase, toSnakeCase, createEvent, generateId, fireAndForget } from '@/lib/supabase-helpers';
 import { wsTaskUpdate } from '@/lib/ws-dispatch';
 
 export async function GET(request: NextRequest) {
@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ tasks: mappedTasks, summary });
   } catch (error: any) {
     console.error('Get sales tasks error:', error);
-    return NextResponse.json({ error: error?.message || 'Terjadi kesalahan server' }, { status: 500 });
+    return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
   }
 }
 
@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
 
     wsTaskUpdate({ assignedToId, taskId: (task as any).id, status: 'pending' });
 
-    createEvent(db, 'sales_task_created', {
+    fireAndForget(createEvent(db, 'sales_task_created', {
       taskId: (task as any).id,
       title,
       type: type || 'general',
@@ -122,6 +122,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ task: toCamelCase(task) }, { status: 201 });
   } catch (error: any) {
     console.error('Create sales task error:', error);
-    return NextResponse.json({ error: error?.message || 'Terjadi kesalahan server' }, { status: 500 });
+    return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
   }
 }

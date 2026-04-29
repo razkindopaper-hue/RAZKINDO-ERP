@@ -157,6 +157,14 @@ export async function createEvent(
 }
 
 /**
+ * Fire-and-forget wrapper — call promise without awaiting, but catch errors.
+ * Use for createLog/createEvent so errors aren't lost without trace.
+ */
+export function fireAndForget(promise: Promise<any>): void {
+  promise.catch(err => console.error('[FireAndForget] Unhandled async error:', err));
+}
+
+/**
  * Build Supabase filter from a Prisma-style where clause
  * Supports: eq, neq, gt, gte, lt, lte, in, contains, ilike
  */

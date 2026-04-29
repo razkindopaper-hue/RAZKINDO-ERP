@@ -44,7 +44,7 @@ export async function PATCH(
 
     if (error) {
       console.error('Custom roles update error:', error);
-      return NextResponse.json({ error: error.message || 'Gagal memperbarui role' }, { status: 500 });
+      return NextResponse.json({ error: 'Gagal memperbarui role' }, { status: 500 });
     }
 
     // If role name changed, update all users with this custom role

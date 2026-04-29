@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ roles });
   } catch (error: any) {
     console.error('Custom roles GET error:', error);
-    return NextResponse.json({ error: error?.message || 'Terjadi kesalahan server' }, { status: 500 });
+    return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
   }
 }
 
@@ -91,12 +91,12 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('Custom roles insert error:', error);
-      return NextResponse.json({ error: error.message || 'Gagal membuat role' }, { status: 500 });
+      return NextResponse.json({ error: 'Gagal membuat role' }, { status: 500 });
     }
 
     return NextResponse.json({ role: toCamelCase(data) });
   } catch (error: any) {
     console.error('Custom roles POST error:', error);
-    return NextResponse.json({ error: error?.message || 'Terjadi kesalahan server' }, { status: 500 });
+    return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
   }
 }

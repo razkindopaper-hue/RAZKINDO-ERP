@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase';
 import { verifyAuthUser } from '@/lib/token';
-import { toCamelCase, createEvent, generateId } from '@/lib/supabase-helpers';
+import { toCamelCase, createEvent, generateId, fireAndForget } from '@/lib/supabase-helpers';
 import { wsTaskUpdate } from '@/lib/ws-dispatch';
 
 export async function POST(
@@ -60,7 +60,7 @@ export async function POST(
     await db.from('sales_tasks').update(taskUpdate).eq('id', taskId);
     wsTaskUpdate({ taskId, status, assignedToId: task.assigned_to_id });
 
-    createEvent(db, 'sales_task_reported', {
+    fireAndForget(createEvent(db, 'sales_task_reported', {
       taskId,
       reportId: (report as any).id,
       status,
@@ -72,6 +72,6 @@ export async function POST(
     return NextResponse.json({ report: toCamelCase(report) }, { status: 201 });
   } catch (error: any) {
     console.error('Create sales task report error:', error);
-    return NextResponse.json({ error: error?.message || 'Terjadi kesalahan server' }, { status: 500 });
+    return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
   }
 }

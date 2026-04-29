@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase';
-import { toCamelCase, createLog, createEvent, generateId } from '@/lib/supabase-helpers';
+import { toCamelCase, createLog, createEvent, generateId, fireAndForget } from '@/lib/supabase-helpers';
 import crypto from 'crypto';
 import { getWhatsAppConfig, sendMessage, disableWhatsAppOnInvalidToken } from '@/lib/whatsapp';
 import { validateBody } from '@/lib/validators';
@@ -166,7 +166,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Don't store recovery code in event payload (security)
-    createEvent(db, 'password_reset_requested', {
+    fireAndForget(createEvent(db, 'password_reset_requested', {
       phone: normalizedPhone,
       userName: userCamel.name,
       sent,
@@ -182,7 +182,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('Forgot password error:', error);
     return NextResponse.json(
-      { error: error?.message || 'Terjadi kesalahan server' },
+      { error: 'Terjadi kesalahan server' },
       { status: 500 }
     );
   }

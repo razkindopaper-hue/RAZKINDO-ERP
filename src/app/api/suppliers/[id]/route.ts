@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase';
-import { toCamelCase, createLog } from '@/lib/supabase-helpers';
+import { toCamelCase, createLog, fireAndForget } from '@/lib/supabase-helpers';
 import { verifyAuthUser } from '@/lib/token';
 
 // Helper: enforce super_admin or keuangan role (mirrors /api/suppliers POST)
@@ -40,7 +40,7 @@ export async function GET(
     return NextResponse.json({ supplier: toCamelCase(supplier) });
   } catch (error: any) {
     console.error('Get supplier error:', error);
-    return NextResponse.json({ error: error?.message || 'Terjadi kesalahan server' }, { status: 500 });
+    return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
   }
 }
 
@@ -90,7 +90,7 @@ export async function PATCH(
 
     const supplierCamel = toCamelCase(supplier);
 
-    createLog(db, {
+    fireAndForget(createLog(db, {
       type: 'activity',
       action: 'supplier_updated',
       entity: 'supplier',
@@ -101,7 +101,7 @@ export async function PATCH(
     return NextResponse.json({ supplier: supplierCamel });
   } catch (error: any) {
     console.error('Update supplier error:', error);
-    return NextResponse.json({ error: error?.message || 'Terjadi kesalahan server' }, { status: 500 });
+    return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
   }
 }
 
@@ -154,7 +154,7 @@ export async function DELETE(
 
     const supplierCamel = toCamelCase(supplier);
 
-    createLog(db, {
+    fireAndForget(createLog(db, {
       type: 'activity',
       action: 'supplier_deleted',
       entity: 'supplier',
@@ -165,6 +165,6 @@ export async function DELETE(
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error('Delete supplier error:', error);
-    return NextResponse.json({ error: error?.message || 'Terjadi kesalahan server' }, { status: 500 });
+    return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
   }
 }

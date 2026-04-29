@@ -367,7 +367,7 @@ export async function registerAllProcessors(): Promise<void> {
  */
 export function schedulePeriodicJobs(): void {
   // Cleanup expired password resets every hour
-  setInterval(async () => {
+  const _cleanupTimer = setInterval(async () => {
     try {
       const { enqueueJob } = await import('./job-queue');
       await enqueueJob('cleanup-expired', { type: 'password_resets' });
@@ -375,9 +375,10 @@ export function schedulePeriodicJobs(): void {
       // Ignore scheduling errors
     }
   }, 60 * 60 * 1000); // 1 hour
+  if (_cleanupTimer.unref) _cleanupTimer.unref();
 
   // Check low stock every 30 minutes
-  setInterval(async () => {
+  const _stockTimer = setInterval(async () => {
     try {
       const { enqueueJob } = await import('./job-queue');
       await enqueueJob('check-low-stock', {});
@@ -385,5 +386,6 @@ export function schedulePeriodicJobs(): void {
       // Ignore scheduling errors
     }
   }, 30 * 60 * 1000); // 30 minutes
+  if (_stockTimer.unref) _stockTimer.unref();
 
 }

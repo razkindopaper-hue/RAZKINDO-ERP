@@ -226,7 +226,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ customer: { ...customerCamel, assignedTo: customerCamel.assignedTo || null } });
   } catch (error: any) {
     console.error('Create customer error:', error);
-    const message = error?.message || 'Terjadi kesalahan server';
+    const message = 'Terjadi kesalahan server';
     return NextResponse.json(
       { error: `Gagal membuat pelanggan: ${message}` },
       { status: 500 }

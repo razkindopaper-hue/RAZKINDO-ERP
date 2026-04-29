@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase';
-import { toCamelCase, createLog, createEvent } from '@/lib/supabase-helpers';
+import { toCamelCase, createLog, createEvent, fireAndForget } from '@/lib/supabase-helpers';
 import { enforceSuperAdmin } from '@/lib/require-auth';
 import { wsTransactionUpdate } from '@/lib/ws-dispatch';
 import { atomicUpdateBalance, atomicUpdatePoolBalance } from '@/lib/atomic-ops';
@@ -358,7 +358,7 @@ export async function POST(
     }
 
     // Log
-    createLog(db, {
+    fireAndForget(createLog(db, {
       type: 'audit',
       action: 'transaction_cancelled',
       entity: 'transaction',
@@ -366,7 +366,7 @@ export async function POST(
       message: 'Transaction ' + txCamel.invoiceNo + ' cancelled'
     });
 
-    createEvent(db, 'transaction_cancelled', {
+    fireAndForget(createEvent(db, 'transaction_cancelled', {
       transactionId: id,
       invoiceNo: txCamel.invoiceNo
     });

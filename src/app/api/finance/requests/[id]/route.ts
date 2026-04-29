@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase';
 import { verifyAuthUser } from '@/lib/token';
 import { enforceFinanceRole } from '@/lib/require-auth';
-import { toCamelCase, toSnakeCase, createLog, createEvent, generateId } from '@/lib/supabase-helpers';
+import { toCamelCase, toSnakeCase, createLog, createEvent, generateId, fireAndForget } from '@/lib/supabase-helpers';
 import { wsFinanceUpdate, wsStockUpdate } from '@/lib/ws-dispatch';
 import { atomicUpdateBalance, atomicUpdatePoolBalance, getPoolBalance } from '@/lib/atomic-ops';
 import { financeEngine } from '@/lib/finance-engine';
@@ -45,7 +45,7 @@ export async function GET(
     return NextResponse.json({ request: toCamelCase(financeRequest) });
   } catch (error: any) {
     console.error('Get finance request error:', error);
-    return NextResponse.json({ error: error?.message || 'Terjadi kesalahan server' }, { status: 500 });
+    return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
   }
 }
 
@@ -126,8 +126,8 @@ export async function PUT(
       const { error } = await db.from('finance_requests').update(updateData).eq('id', id);
       if (error) throw error;
 
-      createEvent(db, `finance_request_${data.status}`, { requestId: id, type: existingRequest.type, amount: existingRequest.amount });
-      createLog(db, { type: 'activity', userId: data.processedById, action: `finance_request_${data.status}`, entity: 'finance_request', entityId: id, message: `Request ${existingRequest.type} di-${data.status}` });
+      fireAndForget(createEvent(db, `finance_request_${data.status}`, { requestId: id, type: existingRequest.type, amount: existingRequest.amount });
+      fireAndForget(createLog(db, { type: 'activity', userId: data.processedById, action: `finance_request_${data.status}`, entity: 'finance_request', entityId: id, message: `Request ${existingRequest.type} di-${data.status}` });
 
       const { data: updatedRequest, error: refetchError } = await db.from('finance_requests').select(`
         *, supplier:suppliers(id, name), transaction:transactions(id, invoice_no, customer:customers(id, name), unit:units(id, name), items:transaction_items(*)), bank_account:bank_accounts!finance_requests_bank_account_id_fkey(id, name, bank_name), cash_box:cash_boxes!finance_requests_cash_box_id_fkey(id, name), salary_payment:salary_payments(id, user_id, user:users!user_id(id, name))
@@ -142,8 +142,8 @@ export async function PUT(
       const updateData: Record<string, any> = { status: 'rejected', notes: data.notes, rejection_reason: data.rejectionReason };
       const { error } = await db.from('finance_requests').update(updateData).eq('id', id);
       if (error) throw error;
-      createEvent(db, `finance_request_${data.status}`, { requestId: id, type: existingRequest.type, amount: existingRequest.amount });
-      createLog(db, { type: 'activity', userId: data.processedById, action: `finance_request_${data.status}`, entity: 'finance_request', entityId: id, message: `Request ${existingRequest.type} di-${data.status}` });
+      fireAndForget(createEvent(db, `finance_request_${data.status}`, { requestId: id, type: existingRequest.type, amount: existingRequest.amount });
+      fireAndForget(createLog(db, { type: 'activity', userId: data.processedById, action: `finance_request_${data.status}`, entity: 'finance_request', entityId: id, message: `Request ${existingRequest.type} di-${data.status}` });
       const { data: updatedRequest, error: refetchError2 } = await db.from('finance_requests').select(`
         *, supplier:suppliers(id, name), transaction:transactions(id, invoice_no, customer:customers(id, name), unit:units(id, name), items:transaction_items(*)), bank_account:bank_accounts!finance_requests_bank_account_id_fkey(id, name, bank_name), cash_box:cash_boxes!finance_requests_cash_box_id_fkey(id, name), salary_payment:salary_payments(id, user_id, user:users!user_id(id, name))
       `).eq('id', id).maybeSingle();
@@ -349,8 +349,8 @@ export async function PUT(
       await runInTransaction(txSteps);
 
       // Fire-and-forget operations (outside transaction)
-      createEvent(db, `finance_request_${data.status}`, { requestId: id, type: freshResult.type, amount: freshResult.amount });
-      createLog(db, { type: 'activity', userId: data.processedById, action: `finance_request_${data.status}`, entity: 'finance_request', entityId: id, message: `Request ${freshResult.type} di-${data.status}` });
+      fireAndForget(createEvent(db, `finance_request_${data.status}`, { requestId: id, type: freshResult.type, amount: freshResult.amount });
+      fireAndForget(createLog(db, { type: 'activity', userId: data.processedById, action: `finance_request_${data.status}`, entity: 'finance_request', entityId: id, message: `Request ${freshResult.type} di-${data.status}` });
 
       const { data: updatedRequest, error: refetchError3 } = await db.from('finance_requests').select(`
         *, supplier:suppliers(id, name), transaction:transactions(id, invoice_no, customer:customers(id, name), unit:units(id, name), items:transaction_items(*)), bank_account:bank_accounts!finance_requests_bank_account_id_fkey(id, name, bank_name), cash_box:cash_boxes!finance_requests_cash_box_id_fkey(id, name), salary_payment:salary_payments(id, user_id, user:users!user_id(id, name))
@@ -364,8 +364,8 @@ export async function PUT(
     const updateData = toSnakeCase({ status: data.status, notes: data.notes, paymentType: data.processType });
     const { data: updatedRequest, error } = await db.from('finance_requests').update(updateData).eq('id', id).select().single();
     if (error) throw error;
-    createEvent(db, `finance_request_${data.status}`, { requestId: id, type: existingRequest.type, amount: existingRequest.amount });
-    createLog(db, { type: 'activity', userId: data.processedById, action: `finance_request_${data.status}`, entity: 'finance_request', entityId: id, message: `Request ${existingRequest.type} di-${data.status}` });
+    fireAndForget(createEvent(db, `finance_request_${data.status}`, { requestId: id, type: existingRequest.type, amount: existingRequest.amount });
+    fireAndForget(createLog(db, { type: 'activity', userId: data.processedById, action: `finance_request_${data.status}`, entity: 'finance_request', entityId: id, message: `Request ${existingRequest.type} di-${data.status}` });
     wsFinanceUpdate({ requestId: id, status: data.status, type: existingRequest.type, amount: existingRequest.amount });
     return NextResponse.json({ request: toCamelCase(updatedRequest) });
   } catch (error) {
@@ -433,7 +433,7 @@ async function updateGoodsStatus(existingRequest: any, data: any) {
       }
     }
 
-    createLog(db, { type: 'activity', userId: existingRequest.processed_by_id || existingRequest.request_by_id, action: 'stock_updated_from_purchase', entity: 'finance_request', entityId: existingRequest.id, message: `Stok diupdate dari penerimaan barang: ${items.length} produk` });
+    fireAndForget(createLog(db, { type: 'activity', userId: existingRequest.processed_by_id || existingRequest.request_by_id, action: 'stock_updated_from_purchase', entity: 'finance_request', entityId: existingRequest.id, message: `Stok diupdate dari penerimaan barang: ${items.length} produk` });
 
     // Dispatch WebSocket stock updates for all incremented products
     for (const item of items) {

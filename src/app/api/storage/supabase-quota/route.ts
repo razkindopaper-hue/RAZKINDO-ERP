@@ -266,7 +266,7 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     console.error('Supabase quota API error:', error.message);
     return NextResponse.json(
-      { success: false, error: 'Gagal mengambil info kuota Supabase: ' + (error.message || 'Unknown error') },
+      { success: false, error: 'Gagal mengambil info kuota Supabase' },
       { status: 500 }
     );
   }

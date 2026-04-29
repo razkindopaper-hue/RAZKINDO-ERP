@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase';
-import { toCamelCase, createEvent, generateId } from '@/lib/supabase-helpers';
+import { toCamelCase, createEvent, generateId, fireAndForget } from '@/lib/supabase-helpers';
 import { verifyAndGetAuthUser } from '@/lib/token';
 import { getWhatsAppConfig, sendMessage, disableWhatsAppOnInvalidToken } from '@/lib/whatsapp';
 import { wsTransactionUpdate, wsNotifyAll } from '@/lib/ws-dispatch';
@@ -516,7 +516,7 @@ export async function POST(request: NextRequest) {
     const cashbackEarned = 0;
 
     // Create event
-    createEvent(db, 'pwa_order_approved', {
+    fireAndForget(createEvent(db, 'pwa_order_approved', {
       transactionId,
       invoiceNo: txCamel.invoiceNo,
       type: 'sale',
@@ -608,7 +608,7 @@ export async function POST(request: NextRequest) {
 
     // Also send transfer reminder if payment method is transfer
     if (paymentMethod === 'transfer') {
-      createEvent(db, 'payment_proof_needed', {
+      fireAndForget(createEvent(db, 'payment_proof_needed', {
         transactionId,
         invoiceNo: txCamel.invoiceNo,
         customerName: customer.name,
@@ -635,6 +635,6 @@ export async function POST(request: NextRequest) {
 
   } catch (error: any) {
     console.error('PWA order approve error:', error);
-    return NextResponse.json({ error: error?.message || 'Terjadi kesalahan server' }, { status: 500 });
+    return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
   }
 }

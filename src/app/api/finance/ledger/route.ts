@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase';
 import { verifyAuthUser } from '@/lib/token';
 import { enforceFinanceRole } from '@/lib/require-auth';
-import { rowsToCamelCase, createLog } from '@/lib/supabase-helpers';
+import { rowsToCamelCase, createLog, fireAndForget } from '@/lib/supabase-helpers';
 import { financeEngine } from '@/lib/finance-engine';
 
 // GET /api/finance/ledger
@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
 
       // Log the reconciliation
       try {
-        createLog(db, {
+        fireAndForget(createLog(db, {
           type: 'audit',
           action: 'ledger_reconciliation',
           entity: 'finance_ledger',

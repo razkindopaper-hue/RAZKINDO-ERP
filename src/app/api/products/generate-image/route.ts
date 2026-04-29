@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('Generate image error:', error);
     return NextResponse.json(
-      { error: error.message || 'Gagal generate gambar' },
+      { error: 'Gagal generate gambar' },
       { status: 500 }
     );
   }
