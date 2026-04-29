@@ -556,15 +556,14 @@ export default function BankMutationsTab({ bankAccounts }: BankMutationsTabProps
               )}
             </DialogTitle>
             <DialogDescription className="space-y-1">
-              <p className="text-sm">
-                <span className="font-bold text-base">
-                  {actionMode === 'credit' ? '+' : '-'}{formatCurrency(Math.abs(Number(selectedMutation?.amount) || 0))}
-                </span>
-              </p>
-              <p className="text-xs text-muted-foreground">
+              <span className="font-bold text-base">
+                {actionMode === 'credit' ? '+' : '-'}{formatCurrency(Math.abs(Number(selectedMutation?.amount) || 0))}
+              </span>
+              <br />
+              <span className="text-xs text-muted-foreground">
                 {selectedMutation?.date && formatDate(selectedMutation.date.split(' ')[0])}
                 {selectedMutation?.description && ` — ${selectedMutation.description}`}
-              </p>
+              </span>
             </DialogDescription>
           </DialogHeader>
 
