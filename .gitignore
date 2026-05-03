@@ -1,17 +1,7 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
 # dependencies
 node_modules
 /.pnp
 .pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
-
-# testing
-/coverage
 
 # next.js
 /.next/
@@ -23,12 +13,17 @@ node_modules
 # misc
 .DS_Store
 *.pem
+Thumbs.db
 
 # debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+*.log
+server.log
+dev.log
+dev.out.log
 
 # env files — JANGAN COMMIT (contains secrets)
 .env
@@ -42,19 +37,28 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# IDE / AI tools
 local-*
 .claude
 .z-ai-config
-*.log
-server.log
-dev.log
-dev.out.log
+.vscode/
+.idea/
+
+# test & temp
+/coverage
 test
 prompt
 
-# Secret files
+# Database secrets
 db/.auth-secret
 db/rate-limits.json
+db/*.db
+db/*.db-journal
 
 # Skills directory
 /skills/
+
+# Backup archives
+backup-*.tar.gz
+app.bak.*/
