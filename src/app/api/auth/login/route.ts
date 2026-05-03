@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
 
     const { data: user, error: dbError } = await db
       .from('users')
-      .select('*, unit:units(*), custom_role:custom_roles(*)')
+      .select('*, unit:units(*), custom_role:custom_roles!users_custom_role_id_fkey(*)')
       .eq('email', normalizedEmail)
       .maybeSingle();
 
