@@ -1,7 +1,25 @@
-import { Queue, Worker, Job, Processor } from 'bullmq';
 import { IS_STB } from './stb-config';
 
 const REDIS_URL = process.env.REDIS_URL || '';
+
+// BullMQ types (used for type annotations only — actual import is dynamic)
+interface Queue { add(name: string, data: any, opts?: any): Promise<any>; close(): Promise<void>; on(event: string, fn: (...args: any[]) => void): any; }
+interface Worker { close(): Promise<void>; on(event: string, fn: (...args: any[]) => void): any; }
+interface Job { id: string; name: string; data: any; attemptsMade: number; }
+
+// Lazy BullMQ loader — avoids loading ~5-10MB when Redis is not configured
+let _bullMQLoaded = false;
+async function loadBullMQ(): Promise<{ Queue: typeof Queue; Worker: typeof Worker } | null> {
+  if (!REDIS_URL) return null;
+  try {
+    const mod = await import('bullmq');
+    _bullMQLoaded = true;
+    return { Queue: mod.Queue, Worker: mod.Worker };
+  } catch {
+    console.warn('[JobQueue] BullMQ not available, using in-memory fallback');
+    return null;
+  }
+}
 
 // ─────────────────────────────────────────────────────────────────────
 // QUEUE SINGLETON

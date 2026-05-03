@@ -585,7 +585,7 @@ function PWAOrderCard({
       price: parseFloat(prices[item.id]) || 0,
     }));
 
-    const hasEmpty = itemsWithPrice.some(i => i.price <= 0);
+    const hasEmpty = itemsWithPrice.some((i: any) => i.price <= 0);
     if (hasEmpty) {
       toast.error('Semua item harus memiliki harga');
       return;

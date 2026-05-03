@@ -185,7 +185,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Force all connected clients to refresh — critical for cross-session consistency
-    wsRefreshAll(`System reset: ${type}`).catch(() => {});
+    wsRefreshAll({ message: `System reset: ${type}` });
 
     return NextResponse.json({
       success: true,

@@ -869,10 +869,10 @@ export function SaleForm({
 
         {/* Bottom sheet drawers */}
         <CourierSelectDrawer open={showCourierDrawer} onOpenChange={setShowCourierDrawer}
-          couriers={unitCouriers} selectedId={courierId} onSelect={id => { setCourierId(id); setShowCourierDrawer(false); }} />
+          couriers={unitCouriers} selectedId={courierId} onSelect={(id: string) => { setCourierId(id); setShowCourierDrawer(false); }} />
         <DateSelectDrawer open={showDateDrawer} onOpenChange={setShowDateDrawer}
-          value={transactionDate} onChange={d => { setTransactionDate(d); setShowDateDrawer(false); }} />
-        <NotesEditDrawer open={showNotesDrawer} onOpenChange={setShowNotesDrawer} value={notes} onChange={n => setNotes(n)} />
+          value={transactionDate} onChange={(d: Date) => { setTransactionDate(d); setShowDateDrawer(false); }} />
+        <NotesEditDrawer open={showNotesDrawer} onOpenChange={setShowNotesDrawer} value={notes} onChange={(n: string) => setNotes(n)} />
       </DialogContent>
     </Dialog>
   );

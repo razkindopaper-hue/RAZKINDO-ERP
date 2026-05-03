@@ -261,7 +261,7 @@ export async function POST(
     }).catch(() => {});
 
     // --- Fire-and-forget: WebSocket notification (specific event for proof refresh) ---
-    wsEmit({ event: 'erp:payment_proof_update', data: { invoiceNo }, target: 'all' }).catch(() => {});
+    wsEmit('erp:payment_proof_update', { invoiceNo });
 
     return NextResponse.json({
       success: true,

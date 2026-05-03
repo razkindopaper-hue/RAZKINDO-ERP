@@ -328,7 +328,7 @@ export async function POST(request: NextRequest) {
         if (!item.product_id) continue;
 
         // Calculate qty in sub-unit for stock deduction
-        const rawConvRate = (txItems.find(ti => ti.productId === item.product_id)?.product as any)?.conversionRate;
+        const rawConvRate = (txItems.find((ti: any) => ti.productId === item.product_id)?.product as any)?.conversionRate;
         if (!rawConvRate || rawConvRate <= 0) {
           console.warn(`[PWA APPROVE] Product ${item.product_id} has invalid conversionRate (${rawConvRate}), using 1`);
         }

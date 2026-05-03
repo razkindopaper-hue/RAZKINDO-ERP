@@ -135,7 +135,7 @@ export async function POST(
     }
 
     // Create cashback log (non-blocking — don't fail if table doesn't exist)
-    db.from('cashback_log').insert({
+    Promise.resolve(db.from('cashback_log').insert({
       id: generateId(),
       customer_id: customer.id,
       withdrawal_id: withdrawalId,
@@ -143,7 +143,7 @@ export async function POST(
       amount: data.amount,
       description: `Pencairan cashback - ${data.bankName} (${data.accountNo})`,
       created_at: new Date().toISOString(),
-    }).then(() => {}).catch((logErr: any) => {
+    })).catch((logErr: any) => {
       console.warn('[PWA Withdrawal] cashback_log insert failed (non-blocking):', logErr?.message || logErr);
     });
 

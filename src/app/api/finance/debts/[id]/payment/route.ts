@@ -154,7 +154,7 @@ export async function POST(
           }).eq('id', id);
         } catch { /* best effort rollback */ }
       }),
-    ]);
+    ] as import('@/lib/db-transaction').TransactionStep<unknown>[]);
 
     const payment = results[3];
 

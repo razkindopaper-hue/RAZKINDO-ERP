@@ -1,7 +1,5 @@
 #!/bin/sh
 
-set -e
-
 # 获取脚本所在目录
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 BUILD_DIR="$SCRIPT_DIR"
@@ -9,16 +7,32 @@ BUILD_DIR="$SCRIPT_DIR"
 # 存储所有子进程的 PID
 pids=""
 
+# ─── STB Mode Detection ───
+export STB_MODE="${STB_MODE:-false}"
+if [ "$STB_MODE" = "true" ] || [ "$STB_MODE" = "1" ]; then
+    IS_STB=true
+else
+    # Auto-detect: if total RAM <= 3GB, assume STB
+    TOTAL_MEM_KB=$(cat /proc/meminfo 2>/dev/null | grep MemTotal | awk '{print $2}')
+    if [ -n "$TOTAL_MEM_KB" ] && [ "$TOTAL_MEM_KB" -le 3145728 ]; then
+        IS_STB=true
+        export STB_MODE=true
+        echo "🔧 Auto-detected STB mode (RAM: $((TOTAL_MEM_KB / 1024))MB ≤ 3GB)"
+    else
+        IS_STB=false
+    fi
+fi
+
 # 清理函数：优雅关闭所有服务
 cleanup() {
     echo ""
-    echo "🛑 正在关闭所有服务..."
+    echo "🛑 Shutting down all services..."
     
     # 发送 SIGTERM 信号给所有子进程
     for pid in $pids; do
         if kill -0 "$pid" 2>/dev/null; then
             service_name=$(ps -p "$pid" -o comm= 2>/dev/null || echo "unknown")
-            echo "   关闭进程 $pid ($service_name)..."
+            echo "   Stopping $pid ($service_name)..."
             kill -TERM "$pid" 2>/dev/null
         fi
     done
@@ -27,25 +41,30 @@ cleanup() {
     sleep 1
     for pid in $pids; do
         if kill -0 "$pid" 2>/dev/null; then
-            # 如果还在运行，等待最多 4 秒
             timeout=4
             while [ $timeout -gt 0 ] && kill -0 "$pid" 2>/dev/null; do
                 sleep 1
                 timeout=$((timeout - 1))
             done
-            # 如果仍然在运行，强制关闭
             if kill -0 "$pid" 2>/dev/null; then
-                echo "   强制关闭进程 $pid..."
+                echo "   Force killing $pid..."
                 kill -KILL "$pid" 2>/dev/null
             fi
         fi
     done
     
-    echo "✅ 所有服务已关闭"
+    echo "✅ All services stopped"
     exit 0
 }
 
-echo "🚀 开始启动所有服务..."
+trap cleanup SIGTERM SIGINT SIGQUIT
+
+echo "🚀 Starting all services..."
+if [ "$IS_STB" = "true" ]; then
+    echo "🔧 STB Mode: ENABLED (RAM-constrained)"
+else
+    echo "🔧 STB Mode: DISABLED (standard server)"
+fi
 echo ""
 
 # 切换到构建目录
@@ -58,7 +77,7 @@ DEFAULT_PACKAGED_DATABASE_URL="file:$DEFAULT_PACKAGED_DB_PATH"
 
 # 启动 Next.js 服务器
 if [ -f "./next-service-dist/server.js" ]; then
-    echo "🚀 启动 Next.js 服务器..."
+    echo "🚀 Starting Next.js server..."
     cd next-service-dist/ || exit 1
     
     # 设置环境变量
@@ -69,66 +88,77 @@ if [ -f "./next-service-dist/server.js" ]; then
 
     if [ "$DATABASE_URL" = "$DEFAULT_PACKAGED_DATABASE_URL" ]; then
         if [ ! -f "$DEFAULT_PACKAGED_DB_PATH" ]; then
-            echo "❌ 未找到打包后的数据库文件 $DEFAULT_PACKAGED_DB_PATH"
-            echo "   为避免生产环境启动到空数据库，启动已终止"
+            echo "❌ Database not found: $DEFAULT_PACKAGED_DB_PATH"
+            echo "   Aborting to prevent starting with empty database."
             exit 1
         fi
-
-        echo "🗄️  当前使用打包数据库: $DEFAULT_PACKAGED_DB_PATH"
+        echo "🗄️  Using packaged DB: $DEFAULT_PACKAGED_DB_PATH"
     else
-        echo "🗄️  当前使用外部指定数据库: $DATABASE_URL"
+        echo "🗄️  Using external DB: $DATABASE_URL"
+    fi
+
+    # Determine heap limit based on STB mode
+    if [ "$IS_STB" = "true" ]; then
+        HEAP_LIMIT="--max-old-space-size=384"
+        echo "🧠 Heap limit: 384MB (STB mode)"
+    else
+        HEAP_LIMIT=""
     fi
     
-    # 后台启动 Next.js
-    bun server.js &
+    # Background start Next.js with optional heap limit
+    bun $HEAP_LIMIT server.js &
     NEXT_PID=$!
     pids="$NEXT_PID"
     
-    # 等待一小段时间检查进程是否成功启动
+    # Wait and check if process started successfully
     sleep 1
     if ! kill -0 "$NEXT_PID" 2>/dev/null; then
-        echo "❌ Next.js 服务器启动失败"
-        exit 1
-    else
-        echo "✅ Next.js 服务器已启动 (PID: $NEXT_PID, Port: $PORT)"
+        echo "❌ Next.js server failed to start"
+        echo "   Retrying without heap limit..."
+        bun server.js &
+        NEXT_PID=$!
+        pids="$NEXT_PID"
+        sleep 1
+        if ! kill -0 "$NEXT_PID" 2>/dev/null; then
+            echo "❌ Next.js server failed to start (retry also failed)"
+            exit 1
+        fi
     fi
+    echo "✅ Next.js started (PID: $NEXT_PID, Port: $PORT)"
     
     cd ../
 else
-    echo "⚠️  未找到 Next.js 服务器文件: ./next-service-dist/server.js"
+    echo "⚠️  Next.js server not found: ./next-service-dist/server.js"
 fi
 
 # 启动 mini-services
 if [ -f "./mini-services-start.sh" ]; then
-    echo "🚀 启动 mini-services..."
+    echo "🚀 Starting mini-services..."
     
-    # 运行启动脚本（从根目录运行，脚本内部会处理 mini-services-dist 目录）
     sh ./mini-services-start.sh &
     MINI_PID=$!
     pids="$pids $MINI_PID"
     
-    # 等待一小段时间检查进程是否成功启动
     sleep 1
     if ! kill -0 "$MINI_PID" 2>/dev/null; then
-        echo "⚠️  mini-services 可能启动失败，但继续运行..."
+        echo "⚠️  mini-services may have failed to start, continuing..."
     else
-        echo "✅ mini-services 已启动 (PID: $MINI_PID)"
+        echo "✅ mini-services started (PID: $MINI_PID)"
     fi
 elif [ -d "./mini-services-dist" ]; then
-    echo "⚠️  未找到 mini-services 启动脚本，但目录存在"
+    echo "⚠️  mini-services-start.sh not found but mini-services-dist directory exists"
 else
-    echo "ℹ️  mini-services 目录不存在，跳过"
+    echo "ℹ️  No mini-services directory, skipping"
 fi
 
 # 启动 Caddy（如果存在 Caddyfile）
-echo "🚀 启动 Caddy..."
+echo "🚀 Starting Caddy..."
 
-# Caddy 作为前台进程运行（主进程）
-echo "✅ Caddy 已启动（前台运行）"
+echo "✅ Caddy starting (foreground)"
 echo ""
-echo "🎉 所有服务已启动！"
+echo "🎉 All services started!"
 echo ""
-echo "💡 按 Ctrl+C 停止所有服务"
+echo "💡 Press Ctrl+C to stop all services"
 echo ""
 
 # Caddy 作为主进程运行

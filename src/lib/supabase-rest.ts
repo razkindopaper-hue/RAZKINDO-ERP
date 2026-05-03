@@ -105,7 +105,7 @@ function createSupabaseClient(): SupabaseClient {
         if (options.signal) {
           options.signal.addEventListener('abort', () => controller.abort(), { once: true });
         }
-        return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timeoutId));
+        return (globalThis.fetch as typeof fetch)(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timeoutId));
       },
     },
   });

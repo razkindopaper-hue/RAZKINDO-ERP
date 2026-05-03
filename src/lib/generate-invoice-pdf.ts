@@ -1,5 +1,8 @@
 'use client';
 
+declare const BluetoothDevice: any;
+declare const BluetoothRemoteGATTCharacteristic: any;
+
 let _autoTable: ((doc: any, options: any) => void) | null = null;
 
 async function getAutoTable() {

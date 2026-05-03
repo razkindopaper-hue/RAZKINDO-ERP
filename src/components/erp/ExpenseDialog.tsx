@@ -52,8 +52,8 @@ export function ExpenseDialog({ bankAccounts, cashBoxes, fundBalances, onClose, 
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
   const [notes, setNotes] = useState('');
-  const [fundSource, setFundSource] = useState<FundSource>('');
-  const [destinationType, setDestinationType] = useState<DestinationType>('');
+  const [fundSource, setFundSource] = useState<FundSource | ''>('');
+  const [destinationType, setDestinationType] = useState<DestinationType | ''>('');
   const [destinationId, setDestinationId] = useState('');
 
   const amountNum = Number(amount) || 0;

@@ -289,7 +289,7 @@ export async function POST(
     }
 
     // Insert transaction items with price=0 (sales will update later)
-    const txItems = items.map(item => ({
+    const txItems = items.map((item: any) => ({
       id: generateId(),
       transaction_id: transactionId,
       product_id: item.productId,
@@ -364,7 +364,7 @@ export async function POST(
         createdBy: toCamelCase(txCamel.createdBy || null),
         customer: toCamelCase(txCamel.customer || null),
         unit: toCamelCase(txCamel.unit || null),
-        items: items.map(i => ({
+        items: items.map((i: any) => ({
           id: i.productId,
           productName: i.productName,
           qty: i.qty,

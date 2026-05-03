@@ -128,6 +128,7 @@ export async function POST(request: NextRequest) {
     // Build atomic transaction steps
     const journalId = generateId();
     const txSteps: TransactionStep<any>[] = [];
+    let _expenseTxResult: any;
 
     // Step 1: Deduct from pool balance (+ ledger entry)
     txSteps.push(createStep('deduct-pool', async () => {
@@ -184,6 +185,7 @@ export async function POST(request: NextRequest) {
 
       const { data: tx, error } = await db.from('transactions').insert(txData).select('id, invoice_no').single();
       if (error) throw error;
+      _expenseTxResult = tx;
       return tx;
     }, async (tx: any) => {
       try {
@@ -194,8 +196,8 @@ export async function POST(request: NextRequest) {
     }));
 
     // Step 4: Create finance request (status: processed)
-    txSteps.push(createStep('create-finance-request', async (prevResults: any) => {
-      const txResult = prevResults['create-expense-tx'];
+    txSteps.push(createStep('create-finance-request', async () => {
+      const txResult = _expenseTxResult;
       const now = new Date().toISOString();
       const reqData = toSnakeCase({
         id: generateId(),
@@ -234,7 +236,7 @@ export async function POST(request: NextRequest) {
     const results = await runInTransaction(txSteps);
 
     // Logging
-    const finalResult = results['create-finance-request'];
+    const finalResult = results[3] as { requestId?: string; invoiceNo?: string } | undefined;
     createEvent(db, 'expense_created', {
       requestId: finalResult?.requestId,
       amount,
@@ -255,7 +257,7 @@ export async function POST(request: NextRequest) {
     }).catch(() => {});
 
     // Broadcast to all finance clients
-    wsFinanceUpdate({ action: 'expense_created', amount, description: description.trim(), fundSource, destinationType }).catch(() => {});
+    wsFinanceUpdate({ action: 'expense_created', amount, description: description.trim(), fundSource, destinationType });
 
     return NextResponse.json({
       success: true,

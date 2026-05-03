@@ -25,8 +25,8 @@ export function snakeToCamel(str: string): string {
  * Returns null when input is null (instead of empty object).
  * For non-null input, returns the camelCase-mapped object.
  */
-export function toCamelCase<T = Record<string, any>>(row: Record<string, any>): T;
-export function toCamelCase<T = Record<string, any>>(row: Record<string, any> | null): T | null;
+export function toCamelCase<T = Record<string, any>>(row: Record<string, any>, _seen?: WeakSet<object>): T;
+export function toCamelCase<T = Record<string, any>>(row: Record<string, any> | null, _seen?: WeakSet<object>): T | null;
 export function toCamelCase<T = Record<string, any>>(row: Record<string, any> | null, _seen?: WeakSet<object>): T | null {
   if (!row) return null;
 

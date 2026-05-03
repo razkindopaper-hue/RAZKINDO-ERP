@@ -87,7 +87,7 @@ export async function POST(
     } catch { /* ignore */ }
 
     // Notify other clients about pool update
-    wsFinanceUpdate({ cashBoxId: id, amount: roundedAmount, action: 'deposit' }).catch(() => {});
+    wsFinanceUpdate({ cashBoxId: id, amount: roundedAmount, action: 'deposit' });
 
     return NextResponse.json({
       cashBox: toCamelCase({ ...cashBox, balance: newBalance }),

@@ -130,7 +130,7 @@ export async function GET(request: NextRequest) {
         timestamp: perfMetrics.timestamp,
         uptimeMs: perfMetrics.uptimeMs,
         summary: perfMetrics.summary,
-        activeAlerts: perfMetrics.activeAlerts.map(a => ({
+        activeAlerts: perfMetrics.activeAlerts.map((a: any) => ({
           metricName: a.metricName,
           type: a.type,
           message: a.message,

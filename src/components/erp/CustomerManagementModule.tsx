@@ -536,7 +536,7 @@ export default function CustomerManagementModule() {
     ]);
     const csvContent = [
       headers.join(','),
-      ...rows.map(r => r.map(v => {
+      ...rows.map((r: any[]) => r.map((v: any) => {
         const s = String(v ?? '');
         if (s.includes(',') || s.includes('"') || s.includes('\n')) return `"${s.replace(/"/g, '""')}"`;
         return s;
