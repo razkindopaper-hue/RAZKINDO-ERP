@@ -75,3 +75,28 @@ Stage Summary:
 - STB readiness: circuit breaker thresholds, memory guard baseline reset, compression, cache control
 - Code quality: circular reference protection in toCamelCase
 - Remaining: BUG-06/07 (TS errors + strict mode) need dedicated sprint; STB-01/02/03/04 (BullMQ lazy, MDXEditor lazy, Sentry conditional, worker process) are optimization tasks
+
+---
+Task ID: fix-check
+Agent: Main Agent
+Task: Investigate and fix issues from previous "fix" request
+
+Work Log:
+- Checked dev server status — was not bound to port 3000 (causing 502 through Caddy)
+- Killed stale processes and restarted dev server cleanly
+- Verified port 3000 is now listening (ss -tlnp confirmed)
+- Page compiled successfully: GET / 200 in 6.5s (compile: 6.0s, render: 513ms)
+- Checked TypeScript compilation for all modified files — zero errors in:
+  - src/components/erp/BankMutationsTab.tsx (1084 lines)
+  - src/app/api/finance/moota/match/route.ts (387 lines)
+  - src/app/api/finance/cash-flow/route.ts (607 lines)
+  - src/components/erp/FinanceModule.tsx
+- Verified all imports resolve correctly (atomicUpdatePoolBalance, wsTransactionUpdate, wsFinanceUpdate)
+- Caddy proxy on port 81 forwarding to Next.js on port 3000
+- All 26/26 RPC functions deployed successfully
+
+Stage Summary:
+- Root cause of "broken" app: Dev server was not bound to port 3000
+- Fix: Restarted dev server — now running and serving pages correctly
+- All mutasi features from previous session (piutang list, admin fee, arus kas, bank balance sync) are intact and compiling
+- No code changes needed
