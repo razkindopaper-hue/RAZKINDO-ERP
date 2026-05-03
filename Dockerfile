@@ -3,27 +3,30 @@
 # Supports: ARM64 (Raspberry Pi) + AMD64 (x86)
 # ============================================
 
-# --- Stage 1: Dependencies ---
-FROM oven/bun:1-alpine AS deps
+# --- Stage 1: Dependencies (bun) ---
+FROM oven/bun:1 AS deps
 WORKDIR /app
 COPY package.json bun.lock* ./
 RUN bun install --frozen-lockfile
 
-# --- Stage 2: Build ---
-FROM oven/bun:1-alpine AS builder
+# --- Stage 2: Build (node for QEMU compatibility) ---
+FROM node:20-alpine AS builder
 WORKDIR /app
+
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/package.json ./
+COPY --from=deps /app/bun.lock* ./
 COPY . .
 
-RUN bunx prisma generate
+RUN npx prisma generate
 
 ENV STB_MODE=true
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
-RUN bun run build
 
-# --- Stage 3: Production ---
+RUN npx next build
+
+# --- Stage 3: Production (bun runtime) ---
 FROM oven/bun:1-alpine AS runner
 WORKDIR /app
 
@@ -44,8 +47,7 @@ COPY --from=builder --chown=appuser:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=appuser:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=appuser:nodejs /app/public ./public
 
-# Copy node_modules for serverExternalPackages (pg, bcryptjs, @prisma, ioredis, sharp)
-# Next.js standalone does NOT bundle these — they must be present at runtime.
+# Copy node_modules for serverExternalPackages
 COPY --from=deps --chown=appuser:nodejs /app/node_modules ./node_modules
 
 RUN mkdir -p /app/db /app/logs && chown -R appuser:nodejs /app
