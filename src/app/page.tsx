@@ -294,14 +294,24 @@ function MainApp() {
   useEffect(() => {
     if (unitsData?.units) {
       setUnits(unitsData.units);
-      // Clear stale selectedUnitId if it no longer exists in the units list
+      // Fix stale selectedUnitId if it no longer exists in the units list
       // (can happen after DB reset/reseed or unit deletion)
+      // Instead of clearing to null (which breaks all operations), auto-select first unit
       const prevSelectedUnitId = useUnitStore.getState().selectedUnitId;
       if (prevSelectedUnitId) {
         const unitExists = unitsData.units.some((u: any) => u.id === prevSelectedUnitId);
         if (!unitExists) {
-          setSelectedUnit(null);
-          console.log('[UnitStore] Cleared stale selectedUnitId:', prevSelectedUnitId);
+          const firstUnitId = unitsData.units.length > 0 ? (unitsData.units[0] as any).id : null;
+          setSelectedUnit(firstUnitId);
+          console.log('[UnitStore] Replaced stale selectedUnitId with first unit:', firstUnitId);
+        }
+      } else if (unitsData.units.length > 0 && !prevSelectedUnitId) {
+        // No unit selected and units are available — auto-select first unit for super_admin
+        // Sales/kurir users get their assigned unit from user profile
+        const userRole = useAuthStore.getState().user?.role;
+        const userUnitId = useAuthStore.getState().user?.unitId;
+        if (userRole === 'super_admin' && !userUnitId) {
+          setSelectedUnit((unitsData.units[0] as any).id);
         }
       }
     }
