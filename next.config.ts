@@ -5,7 +5,7 @@ const isSTB = process.env.STB_MODE === 'true' || process.env.STB_MODE === '1';
 const nextConfig: NextConfig = {
   output: "standalone",
   compress: true, // ✅ Enable gzip/brotli compression
-  serverExternalPackages: ['pg', 'bcryptjs', '@prisma/client', 'prisma', 'ioredis', 'socket.io', '@sentry/nextjs'],
+  serverExternalPackages: ['pg', 'bcryptjs', '@prisma/client', 'prisma', 'ioredis'],
   typescript: {
     ignoreBuildErrors: true, // TODO: enable after fixing all 82 TS errors
   },

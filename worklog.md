@@ -308,3 +308,43 @@ Stage Summary:
 - Transactions API uses effective roles for both GET filtering and POST permission checks
 - Custom role management UI: create/edit forms include permission checkboxes
 - Users with custom roles that have permissions configured will now see modules and access APIs
+
+---
+Task ID: cleanup-dead-code
+Agent: Main Agent
+Task: Audit and remove dead code, unused data, and unused dependencies
+
+Work Log:
+- Created full project backup: backup-before-cleanup-20260503-142534.tar.gz (772KB)
+- Launched 4 parallel audit agents to scan: lib files, hooks/stores, API routes, npm dependencies
+- Found 9 unused lib files, 3 unused hooks/stores, 4 unused API routes, 16 unused npm packages
+- Confirmed use-toast.ts + toaster.tsx are dead (all 37+ components use sonner instead)
+- Verified zero broken imports after all deletions
+
+Deleted files (20 total):
+- src/lib/consistency-scheduler.ts, memory-init.ts, event-batcher.ts
+- src/lib/supabase-prisma.ts (374 lines), supabase-wrapper.ts, supabase-client.ts
+- src/lib/api-wrapper.ts, ensure-search.ts, search.ts (193 lines)
+- src/lib/validators.test.ts (test file in production)
+- src/hooks/use-shared-data.ts, use-sse-fallback.ts, use-toast.ts
+- src/stores/app-settings.ts
+- src/components/ui/toaster.tsx (duplicate of sonner)
+- src/app/api/setup-rpc/, system/consistency/, system/queue-health/, migrate-user-units/
+- app.bak.1777813240/ (2.1 MB old backup directory)
+- examples/ (websocket demo files)
+
+Removed npm packages (16):
+- next-auth, @sentry/nextjs, react-markdown, react-syntax-highlighter
+- @mdxeditor/editor, @reactuses/core, framer-motion
+- @dnd-kit/core, @dnd-kit/sortable, @dnd-kit/utilities
+- @tanstack/react-table, uuid, next-intl, jsdom, @hookform/resolvers, socket.io
+
+Updated next.config.ts: removed 'socket.io' and '@sentry/nextjs' from serverExternalPackages
+
+Stage Summary:
+- ~1,500 lines of dead code removed from src/
+- ~2.1 MB of backup/unused files removed
+- 16 unused npm packages removed (estimated 30-50 MB in node_modules)
+- Lint: 0 errors, 0 warnings
+- Dev server: running normally, GET / 200
+- Zero broken imports verified
