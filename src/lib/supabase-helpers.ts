@@ -27,16 +27,25 @@ export function snakeToCamel(str: string): string {
  */
 export function toCamelCase<T = Record<string, any>>(row: Record<string, any>): T;
 export function toCamelCase<T = Record<string, any>>(row: Record<string, any> | null): T | null;
-export function toCamelCase<T = Record<string, any>>(row: Record<string, any> | null): T | null {
+export function toCamelCase<T = Record<string, any>>(row: Record<string, any> | null, _seen?: WeakSet<object>): T | null {
   if (!row) return null;
+
+  // Circular reference protection
+  if (row instanceof Date) return row as unknown as T;
+  if (typeof row !== 'object') return row as unknown as T;
+
+  const seen = _seen || new WeakSet<object>();
+  if (seen.has(row)) return row as unknown as T; // prevent infinite loop
+  seen.add(row);
+
   const result: Record<string, any> = {};
   for (const [key, value] of Object.entries(row)) {
     const camelKey = snakeToCamel(key);
     if (value !== null && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) {
-      result[camelKey] = toCamelCase(value);
+      result[camelKey] = toCamelCase(value, seen);
     } else if (Array.isArray(value)) {
       result[camelKey] = value.map(item =>
-        item !== null && typeof item === 'object' ? toCamelCase(item) : item
+        item !== null && typeof item === 'object' && !(item instanceof Date) ? toCamelCase(item, seen) : item
       );
     } else {
       result[camelKey] = value;

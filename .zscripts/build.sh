@@ -9,8 +9,8 @@ set -e
 # 使用 $0 获取脚本路径（兼容 sh 和 bash）
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-# Next.js 项目路径
-NEXTJS_PROJECT_DIR="/home/z/my-project"
+# Next.js 项目路径 (use env var with fallback to auto-detect from script location)
+NEXTJS_PROJECT_DIR="${NEXTJS_PROJECT_DIR:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 
 # 检查 Next.js 项目目录是否存在
 if [ ! -d "$NEXTJS_PROJECT_DIR" ]; then

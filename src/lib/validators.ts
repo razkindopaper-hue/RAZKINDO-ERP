@@ -105,6 +105,10 @@ const transactionItemSchema = z.object({
   hpp: z.number().min(0).optional().default(0),
   subtotal: z.number().optional(),
   profit: z.number().optional(),
+  // Discount fields
+  discount: z.number().min(0).max(100).optional().default(0),
+  discountAmount: z.number().min(0).optional().default(0),
+  discountType: z.enum(['percent', 'nominal']).optional().default('percent'),
 });
 
 export const transactionSchemas = {
@@ -122,6 +126,9 @@ export const transactionSchemas = {
     notes: sanitizedStringOptional(2000),
     deliveryAddress: sanitizedStringOptional(500),
     transactionDate: z.string().optional(),
+    // Global discount
+    globalDiscount: z.number().min(0).max(100).optional().default(0),
+    globalDiscountAmount: z.number().min(0).optional().default(0),
   }),
 
   /** POST /api/transactions/[id]/approve — approve transaction */

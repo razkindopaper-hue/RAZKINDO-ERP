@@ -15,8 +15,10 @@ interface DegradationConfig {
 }
 
 // ---------------------------------------------------------------------------
-// Circuit Breaker (simple in-memory)
+// Circuit Breaker (uses stb-config values when in STB mode)
 // ---------------------------------------------------------------------------
+
+import { IS_STB, CIRCUIT_BREAKER } from './stb-config';
 
 interface CircuitState {
   name: string;
@@ -27,8 +29,9 @@ interface CircuitState {
   halfOpenAttempts: number;
 }
 
-const MAX_FAILURES = 5;
-const OPEN_DURATION_MS = 30_000; // 30 seconds before half-open
+// Use STB or standard thresholds based on environment
+const MAX_FAILURES = IS_STB ? CIRCUIT_BREAKER.failureThreshold : 5;
+const OPEN_DURATION_MS = IS_STB ? CIRCUIT_BREAKER.resetTimeoutMs : 30_000;
 
 const circuitBreakers = new Map<string, CircuitState>();
 

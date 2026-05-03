@@ -189,6 +189,13 @@ export class MemoryGuard {
     const stats = this.getStats();
     const now = Date.now();
 
+    // ✅ Update baseline if heap shrinks significantly (GC was effective)
+    if (stats.heapTotalMB < this.baselineHeapMB * 0.7 && this.baselineHeapMB > 0) {
+      const oldBaseline = this.baselineHeapMB;
+      this.baselineHeapMB = stats.heapTotalMB;
+      console.log(`[MemoryGuard] Baseline updated: ${oldBaseline.toFixed(1)}MB → ${this.baselineHeapMB.toFixed(1)}MB (after GC)`);
+    }
+
     // STB: also check if heap exceeds absolute budget limit
     const overBudget = IS_STB && stats.heapUsedMB > MEMORY_BUDGET.maxHeapMB;
 

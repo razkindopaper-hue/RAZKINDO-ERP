@@ -56,12 +56,12 @@ export function getSupabaseConfig(): SupabaseConfig {
 // BACKWARD-COMPATIBLE EXPORTS (lazy getters)
 // ─────────────────────────────────────────────────────────────────────
 
-/** Supabase project URL — lazy getter, validated at first access */
-export let SUPABASE_URL = '';
-/** Supabase anon key — lazy getter, validated at first access */
-export let SUPABASE_ANON_KEY = '';
-/** Supabase service role key — lazy getter, validated at first access */
-export let SUPABASE_SERVICE_KEY = '';
+/** Supabase project URL — use getSupabaseConfig().url instead */
+export let SUPABASE_URL: string = '';
+/** Supabase anon key — use getSupabaseConfig().anonKey instead */
+export let SUPABASE_ANON_KEY: string = '';
+/** Supabase service role key — use getSupabaseConfig().serviceKey instead */
+export let SUPABASE_SERVICE_KEY: string = '';
 
 /**
  * Ensure backward-compat exports are populated.

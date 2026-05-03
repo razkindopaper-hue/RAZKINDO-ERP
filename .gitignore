@@ -30,12 +30,14 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# env files — JANGAN COMMIT (contains secrets)
+.env
+.env.local
+.env.production
+.env*.local
 
 # vercel
 .vercel
-
 
 # typescript
 *.tsbuildinfo
@@ -44,11 +46,15 @@ local-*
 .claude
 .z-ai-config
 *.log
+server.log
 dev.log
 dev.out.log
 test
 prompt
 
-server.log
+# Secret files
+db/.auth-secret
+db/rate-limits.json
+
 # Skills directory
 /skills/
