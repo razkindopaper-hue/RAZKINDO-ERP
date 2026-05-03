@@ -1027,6 +1027,13 @@ export async function POST(request: NextRequest) {
     // no need to call it again here (was causing double-stop bug)
     perfMonitor.incrementCounter('transactions.create_failed');
     console.error('Create transaction error:', error);
+    // Enhanced error logging for debugging
+    const errDetails = error instanceof Error ? {
+      message: error.message,
+      stack: error.stack?.split('\n').slice(0, 5).join('\n'),
+      name: error.name
+    } : { raw: String(error) };
+    console.error('[TX-POST-ERROR] Full details:', JSON.stringify(errDetails, null, 2));
     const message = error instanceof Error ? error.message : 'Terjadi kesalahan server';
     let status = 500;
     if (message.includes('tidak ditemukan')) status = 404;
