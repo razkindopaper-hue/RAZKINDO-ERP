@@ -226,3 +226,28 @@ Stage Summary:
 - Fixed schema, renamed DB columns (data preserved), updated all Supabase queries
 - All 15 .select() strings now use snake_case matching actual DB column names
 - JS property access unchanged (toCamelCase() helper handles conversion)
+
+---
+Task ID: 2
+Agent: Main Agent
+Task: Fix HTTP error 502 when creating invoice (Buat Faktur) from sale form cart
+
+Work Log:
+- Investigated POST /api/transactions handler for potential code bugs related to column rename
+- Verified PRODUCT_FINANCIAL_SELECT uses correct snake_case (conversion_rate, sub_unit)
+- Verified SmartProduct interface uses camelCase (conversionRate, subUnit) — toCamelCase() handles conversion
+- Verified transaction_items INSERT uses correct snake_case column names
+- Found old `app/` directory still existed alongside `src/app/` — potential Turbopack conflict causing double compilation and memory pressure
+- Renamed old `app/` to `app.bak.*` (no references from src/ found)
+- Added unhandled rejection + uncaught exception handlers in instrumentation.ts to prevent silent process crashes
+- Added retry logic with idempotency key (X-Idempotency-Key) in SaleForm handleSubmit
+- SaleForm now retries up to 2 times on 502/503/504 errors with 2s and 4s delays
+- Idempotency key format: `sale-{unitId}-{productIds}-{timestamp}` — prevents duplicate transactions on retry
+
+Stage Summary:
+- No code bug found in the POST handler — the column rename from previous session was correctly applied
+- Root cause: Server instability — Turbopack compilation with duplicate `app/` directory caused excessive memory usage, leading to process kills (502 from Caddy gateway)
+- Fix 1: Removed old `app/` directory to reduce Turbopack compilation scope
+- Fix 2: Added process-level crash handlers (unhandledRejection, uncaughtException)
+- Fix 3: SaleForm now auto-retries on 502/503/504 with idempotency key (no duplicate transactions)
+- Files modified: src/instrumentation.ts, src/components/erp/SaleForm.tsx

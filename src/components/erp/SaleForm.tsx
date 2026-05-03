@@ -350,24 +350,49 @@ export function SaleForm({
     if ((paymentMethod === 'tempo' || paymentMethod === 'piutang') && !dueDate) { toast.error('Jatuh tempo wajib diisi untuk pembayaran tempo'); return; }
     setLoading(true);
     try {
-      const data: any = await apiFetch('/api/transactions', {
-        method: 'POST',
-        body: JSON.stringify({
-          type: 'sale', unitId: posUnitId, createdById: userId,
-          customerId: selectedCustomer?.id || '', courierId: courierId === 'none' ? '' : courierId,
-          paymentMethod, paidAmount,
-          dueDate: paymentMethod === 'tempo' ? dueDate : (paymentMethod === 'piutang' ? dueDate : ''),
-          transactionDate, deliveryAddress: selectedCustomer?.address || '', notes,
-          items: cart.map(i => {
-            const qtyInSubUnit = i.qtyUnitType === 'main' ? i.qty * i.conversionRate : i.qty;
-            const hppPerItem = (Number(i.hpp) || 0) * qtyInSubUnit;
-            return { productId: i.productId, productName: i.productName, qty: i.qty, qtyInSubUnit, qtyUnitType: i.qtyUnitType, price: i.price, hpp: i.hpp, subtotal: i.qty * i.price, profit: (i.qty * i.price) - hppPerItem, totalHpp: hppPerItem };
-          })
+      // Build payload once (immutable across retries)
+      const payload = JSON.stringify({
+        type: 'sale', unitId: posUnitId, createdById: userId,
+        customerId: selectedCustomer?.id || '', courierId: courierId === 'none' ? '' : courierId,
+        paymentMethod, paidAmount,
+        dueDate: paymentMethod === 'tempo' ? dueDate : (paymentMethod === 'piutang' ? dueDate : ''),
+        transactionDate, deliveryAddress: selectedCustomer?.address || '', notes,
+        items: cart.map(i => {
+          const qtyInSubUnit = i.qtyUnitType === 'main' ? i.qty * i.conversionRate : i.qty;
+          const hppPerItem = (Number(i.hpp) || 0) * qtyInSubUnit;
+          return { productId: i.productId, productName: i.productName, qty: i.qty, qtyInSubUnit, qtyUnitType: i.qtyUnitType, price: i.price, hpp: i.hpp, subtotal: i.qty * i.price, profit: (i.qty * i.price) - hppPerItem, totalHpp: hppPerItem };
         })
       });
-      toast.success('Transaksi berhasil dibuat!');
-      setCreatedTransaction(data.transaction);
-    } catch (err: any) { toast.error(err.message || 'Gagal membuat transaksi'); } finally { setLoading(false); }
+
+      // Generate idempotency key so retries don't create duplicate transactions
+      const idempotencyKey = `sale-${posUnitId}-${cart.map(i => i.productId).join(',')}-${Date.now()}`;
+
+      // Retry up to 2 times on 502/503/504 (gateway/overload errors)
+      const MAX_RETRIES = 2;
+      const RETRY_DELAYS = [2000, 4000];
+
+      for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+        try {
+          const data: any = await apiFetch('/api/transactions', {
+            method: 'POST',
+            headers: { 'X-Idempotency-Key': idempotencyKey },
+            body: payload,
+          });
+          toast.success('Transaksi berhasil dibuat!');
+          setCreatedTransaction(data.transaction);
+          return; // Success — exit retry loop
+        } catch (err: any) {
+          const isRetryable = err.status >= 502 && err.status <= 504;
+          const isLastAttempt = attempt >= MAX_RETRIES;
+          if (!isRetryable || isLastAttempt) {
+            toast.error(err.message || 'Gagal membuat transaksi');
+            return; // Non-retryable or exhausted retries
+          }
+          // Wait before retry
+          await new Promise(r => setTimeout(r, RETRY_DELAYS[attempt] || 2000));
+        }
+      }
+    } finally { setLoading(false); }
   };
 
   // ============ PANEL CONTENT RENDERERS ============

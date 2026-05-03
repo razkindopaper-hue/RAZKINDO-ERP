@@ -12,6 +12,16 @@ export async function register() {
     ensureRpcFunctions().catch((err) => {
       console.error('[instrumentation] ensureRpcFunctions failed (non-blocking):', err);
     });
+
+    // Prevent unhandled promise rejections from crashing the server
+    process.on('unhandledRejection', (reason, promise) => {
+      console.error('[instrumentation] UNHANDLED REJECTION (server protected):', reason);
+    });
+
+    // Prevent uncaught exceptions from crashing the server
+    process.on('uncaughtException', (err) => {
+      console.error('[instrumentation] UNCAUGHT EXCEPTION (server protected):', err);
+    });
   }
 }
 
