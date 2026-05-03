@@ -424,3 +424,28 @@ Stage Summary:
 - Fix: Explicit FK hint `!users_custom_role_id_fkey` in PostgREST select
 - Login now works correctly: 401 for wrong credentials, 500 fixed
 - Commit: 8b510ec - pushed to GitHub, CI/CD rebuild triggered
+
+---
+Task ID: fix-stale-unit-fk
+Agent: Main Agent
+Task: Fix "customers_unit_id_fkey" FK violation, "Unit/Cabang tidak ditemukan" when creating invoice, and "data transaksi tidak tersinkron"
+
+Work Log:
+- Investigated customer FK violation: found `selectedUnitId` in localStorage can become stale (unit deleted/reset/reseeded)
+- Fixed page.tsx: Added useEffect to auto-clear stale selectedUnitId when unit no longer exists in units list
+- Fixed api/customers POST: Added unit existence validation before INSERT (prevents FK violation with clear error message)
+- Fixed CustomerManagementModule: Added `validUnitId` validation against units list (prevents sending stale ID)
+- Investigated "data transaksi tidak tersinkron": Found ensure-rpc.ts was NOT deploying RPC functions because SUPABASE_DB_URL/SUPABASE_POOLER_URL were not set in some environments
+- Fixed ensure-rpc.ts: Added fallback to DATABASE_URL/DIRECT_URL when explicit RPC env vars are not set
+- Verified RPC deployment: 26/26 functions deployed successfully
+- Lint: 0 errors, 0 warnings
+
+Stage Summary:
+- Root cause 1 (FK violation): Stale `selectedUnitId` in localStorage after DB reset/unit deletion
+- Root cause 2 (unit not found): Same stale ID sent to transactions API for invoice creation
+- Root cause 3 (data not synced): RPC functions not deployed → stock deduction, customer stats, balance ops silently failed
+- Fix 1: Auto-clear stale selectedUnitId on app load
+- Fix 2: Backend validation of unitId before customer INSERT
+- Fix 3: Frontend validation of selectedUnitId against actual units list
+- Fix 4: ensure-rpc.ts falls back to DATABASE_URL/DIRECT_URL
+- Commit: 3889bc8 - pushed to GitHub, CI/CD rebuild triggered
