@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { apiFetch } from '@/lib/api-client';
@@ -24,6 +24,9 @@ import {
   X,
   Search,
   CalendarDays,
+  AlertTriangle,
+  Banknote,
+  Filter,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -34,6 +37,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -58,16 +62,25 @@ interface MootaMutation {
   balance: string;
 }
 
-interface MatchedTransaction {
+interface PiutangItem {
   id: string;
-  invoiceNo: string;
-  type: string;
+  transactionId: string;
   customerName: string;
-  unitName: string;
-  total: number;
+  customerPhone: string;
+  totalAmount: number;
   paidAmount: number;
   remainingAmount: number;
-  paymentStatus: string;
+  status: string;
+  priority: string;
+  overdueDays: number;
+  createdAt: string;
+  transaction?: {
+    id: string;
+    invoiceNo: string;
+    type: string;
+    dueDate: string;
+    unit?: { id: string; name: string };
+  };
 }
 
 // ─── Bank Logo Helper ───────────────────────────────────────────────
@@ -108,10 +121,11 @@ export default function BankMutationsTab({ bankAccounts }: BankMutationsTabProps
   const [showActionPopup, setShowActionPopup] = useState(false);
   const [actionMode, setActionMode] = useState<'credit' | 'debit'>('credit');
 
-  // Lunas dialog
+  // Piutang dialog state (new: show all piutang instead of auto-match)
   const [showLunasDialog, setShowLunasDialog] = useState(false);
-  const [matchedTransactions, setMatchedTransactions] = useState<MatchedTransaction[]>([]);
-  const [selectedTx, setSelectedTx] = useState<MatchedTransaction | null>(null);
+  const [piutangSearch, setPiutangSearch] = useState('');
+  const [selectedPiutang, setSelectedPiutang] = useState<PiutangItem | null>(null);
+  const [adminFee, setAdminFee] = useState('');
   const [isProcessingLunas, setIsProcessingLunas] = useState(false);
 
   // Debit action dialog
@@ -125,10 +139,13 @@ export default function BankMutationsTab({ bankAccounts }: BankMutationsTabProps
   const [poolKey, setPoolKey] = useState('pool_hpp_paid_balance');
   const [isProcessingPool, setIsProcessingPool] = useState(false);
 
-  // Find matching bank account ID
-  const matchedBankAccount = bankAccounts.find(
-    (ba: any) => selectedBankId && ba.accountNo && false // Will match by moota bank
-  );
+  // Match Moota bank with system bank account
+  const getSystemBankAccount = useCallback((mootaBank: MootaBank | undefined) => {
+    if (!mootaBank) return null;
+    return bankAccounts.find(
+      (ba: any) => ba.accountNo === mootaBank.account_number
+    ) || null;
+  }, [bankAccounts]);
 
   // Fetch Moota banks
   const { data: mootaBanksData, isLoading: banksLoading, refetch: refetchBanks, error: banksError } = useQuery({
@@ -160,6 +177,55 @@ export default function BankMutationsTab({ bankAccounts }: BankMutationsTabProps
   const totalPages = mutationsData?.last_page || 1;
   const totalMutations = mutationsData?.total || 0;
 
+  // Fetch ALL active piutang for lunas dialog (only when dialog is open)
+  const { data: piutangData, isLoading: piutangLoading } = useQuery({
+    queryKey: ['piutang-for-mutation'],
+    queryFn: () => apiFetch<{ receivables: any[] }>('/api/finance/receivables?status=active'),
+    enabled: showLunasDialog,
+    staleTime: 30000,
+  });
+
+  // Process piutang data
+  const piutangList: PiutangItem[] = useMemo(() => {
+    const raw = piutangData?.receivables || [];
+    return raw.map((r: any) => ({
+      id: r.id,
+      transactionId: r.transactionId || r.transaction?.id,
+      customerName: r.customerName || r.transaction?.customer?.name || 'Walk-in',
+      customerPhone: r.customerPhone || r.transaction?.customer?.phone || '',
+      totalAmount: Number(r.totalAmount) || 0,
+      paidAmount: Number(r.paidAmount) || 0,
+      remainingAmount: Number(r.remainingAmount) || 0,
+      status: r.status,
+      priority: r.priority || 'normal',
+      overdueDays: r.overdueDays || 0,
+      createdAt: r.createdAt,
+      transaction: r.transaction ? {
+        id: r.transaction.id,
+        invoiceNo: r.transaction.invoiceNo || r.transaction.invoice_no,
+        type: r.transaction.type,
+        dueDate: r.transaction.dueDate || r.transaction.due_date,
+        unit: r.transaction.unit,
+      } : undefined,
+    }));
+  }, [piutangData]);
+
+  // Filtered piutang by search
+  const filteredPiutang = useMemo(() => {
+    if (!piutangSearch.trim()) return piutangList;
+    const q = piutangSearch.toLowerCase().trim();
+    return piutangList.filter(p =>
+      p.customerName.toLowerCase().includes(q) ||
+      (p.transaction?.invoiceNo || '').toLowerCase().includes(q) ||
+      p.customerPhone.includes(q)
+    );
+  }, [piutangList, piutangSearch]);
+
+  // Mutation amount helpers
+  const mutationAmount = Math.abs(Number(selectedMutation?.amount) || 0);
+  const adminFeeAmount = Math.abs(Number(adminFee) || 0);
+  const availablePaymentAmount = Math.max(0, mutationAmount - adminFeeAmount);
+
   // Refresh mutation
   const refreshMutation = useMutation({
     mutationFn: () => apiFetch('/api/finance/moota/refresh', {
@@ -173,7 +239,7 @@ export default function BankMutationsTab({ bankAccounts }: BankMutationsTabProps
     onError: (err: Error) => toast.error(err.message),
   });
 
-  // Match mutation to lunas
+  // Match mutation to lunas (updated to support admin fee)
   const matchMutation = useMutation({
     mutationFn: (data: any) => apiFetch('/api/finance/moota/match', {
       method: 'POST',
@@ -183,11 +249,15 @@ export default function BankMutationsTab({ bankAccounts }: BankMutationsTabProps
       toast.success(data.message);
       setShowLunasDialog(false);
       setShowActionPopup(false);
-      setSelectedTx(null);
+      setSelectedPiutang(null);
+      setAdminFee('');
+      setPiutangSearch('');
       queryClient.invalidateQueries({ queryKey: ['moota-mutations'] });
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['finance-pools'] });
       queryClient.invalidateQueries({ queryKey: ['bank-accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['receivables'] });
+      queryClient.invalidateQueries({ queryKey: ['cash-flow'] });
     },
     onError: (err: Error) => toast.error(err.message),
   });
@@ -198,42 +268,30 @@ export default function BankMutationsTab({ bankAccounts }: BankMutationsTabProps
     setSelectedMutation(mutation);
     const isCredit = mutation.type === 'CR';
     setActionMode(isCredit ? 'credit' : 'debit');
+    setShowActionPopup(true);
+    // Don't pre-fetch matching transactions anymore — user will see piutang list on demand
+  };
 
-    if (isCredit) {
-      // Uang masuk — search for matching unpaid transactions
-      const absAmount = Math.abs(Number(mutation.amount) || 0);
-      apiFetch<{ transactions: MatchedTransaction[] }>(
-        `/api/transactions?type=sale&status=approved`
-      ).then((res) => {
-        // Filter to find potential matches (amount matches within a tolerance)
-        const candidates = (res.transactions || []).filter(
-          (tx: MatchedTransaction) =>
-            tx.paymentStatus !== 'paid' &&
-            Math.abs(tx.remainingAmount - absAmount) < 500 // Within 500 IDR tolerance
-        ).slice(0, 10);
-        setMatchedTransactions(candidates);
-        setShowActionPopup(true);
-      }).catch(() => {
-        setMatchedTransactions([]);
-        setShowActionPopup(true);
-      });
-    } else {
-      // Uang keluar
-      setShowActionPopup(true);
-    }
+  // ─── Open Lunas Dialog ───────────────────────────────────────────
+
+  const handleOpenLunasDialog = () => {
+    setSelectedPiutang(null);
+    setAdminFee('');
+    setPiutangSearch('');
+    setShowLunasDialog(true);
   };
 
   // ─── Process Lunas ────────────────────────────────────────────────
 
   const handleLunas = () => {
-    if (!selectedTx || !selectedMutation) return;
+    if (!selectedPiutang || !selectedMutation) return;
     setIsProcessingLunas(true);
 
-    // Find bank account ID by matching account number
     const mootaBank = mootaBanks.find(b => b.bank_id === selectedMutation.bank_id);
-    const bankAccount = bankAccounts.find(
-      (ba: any) => mootaBank && ba.accountNo === mootaBank.account_number
-    );
+    const bankAccount = getSystemBankAccount(mootaBank);
+
+    // Use available payment amount (mutation amount - admin fee)
+    const payAmount = Math.min(availablePaymentAmount, selectedPiutang.remainingAmount);
 
     matchMutation.mutate({
       type: 'lunas',
@@ -243,7 +301,9 @@ export default function BankMutationsTab({ bankAccounts }: BankMutationsTabProps
       mutationDescription: selectedMutation.description,
       bankAccountId: bankAccount?.id || null,
       bankId: selectedMutation.bank_id,
-      transactionId: selectedTx.id,
+      transactionId: selectedPiutang.transactionId,
+      amount: payAmount,
+      adminFee: adminFeeAmount,
     }, {
       onSettled: () => setIsProcessingLunas(false),
     });
@@ -256,9 +316,7 @@ export default function BankMutationsTab({ bankAccounts }: BankMutationsTabProps
     setIsProcessingPool(true);
 
     const mootaBank = mootaBanks.find(b => b.bank_id === selectedMutation.bank_id);
-    const bankAccount = bankAccounts.find(
-      (ba: any) => mootaBank && ba.accountNo === mootaBank.account_number
-    );
+    const bankAccount = getSystemBankAccount(mootaBank);
 
     matchMutation.mutate({
       type: 'pool',
@@ -281,9 +339,7 @@ export default function BankMutationsTab({ bankAccounts }: BankMutationsTabProps
     setIsProcessingDebit(true);
 
     const mootaBank = mootaBanks.find(b => b.bank_id === selectedMutation.bank_id);
-    const bankAccount = bankAccounts.find(
-      (ba: any) => mootaBank && ba.accountNo === mootaBank.account_number
-    );
+    const bankAccount = getSystemBankAccount(mootaBank);
 
     matchMutation.mutate({
       type: debitAction,
@@ -377,24 +433,53 @@ export default function BankMutationsTab({ bankAccounts }: BankMutationsTabProps
             </p>
           )}
 
-          {/* Bank selector */}
+          {/* Bank selector — with system balance sync */}
           {mootaBanks.length > 0 && (
             <div className="flex flex-wrap gap-2">
-            {mootaBanks.map((bank) => (
-              <button
-                key={bank.bank_id}
-                onClick={() => { setSelectedBankId(bank.bank_id); setPage(1); }}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                  selectedBankId === bank.bank_id
-                    ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border border-green-300 dark:border-green-700'
-                    : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300 border border-transparent hover:bg-gray-200 dark:hover:bg-gray-700'
-                }`}
-              >
-                <span>{getBankLogo(bank.bank_type)}</span>
-                <span className="truncate max-w-[120px]">{bank.label || bank.bank_type.toUpperCase()}</span>
-                <span className="text-[10px] opacity-60">{bank.account_number}</span>
-              </button>
-            ))}
+            {mootaBanks.map((bank) => {
+              const sysBank = bankAccounts.find(
+                (ba: any) => ba.accountNo === bank.account_number
+              );
+              const mootaBal = Number(bank.balance) || 0;
+              const sysBal = sysBank ? Number(sysBank.balance) : 0;
+              const hasDiff = sysBank && Math.abs(mootaBal - sysBal) > 1;
+
+              return (
+                <button
+                  key={bank.bank_id}
+                  onClick={() => { setSelectedBankId(bank.bank_id); setPage(1); }}
+                  className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                    selectedBankId === bank.bank_id
+                      ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border border-green-300 dark:border-green-700'
+                      : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300 border border-transparent hover:bg-gray-200 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  <span>{getBankLogo(bank.bank_type)}</span>
+                  <div className="flex flex-col items-start min-w-0">
+                    <span className="truncate max-w-[140px] font-semibold">{bank.label || bank.bank_type.toUpperCase()}</span>
+                    <span className="text-[10px] opacity-70">{bank.account_number}</span>
+                  </div>
+                  <div className="flex flex-col items-end ml-1 shrink-0">
+                    {sysBank ? (
+                      <>
+                        <span className={`text-[10px] font-bold ${hasDiff ? 'text-amber-600 dark:text-amber-400' : 'text-green-700 dark:text-green-300'}`}>
+                          {formatCurrency(sysBal)}
+                        </span>
+                        {hasDiff && (
+                          <span className="text-[9px] opacity-50 line-through">
+                            Moota: {formatCurrency(mootaBal)}
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-[10px] opacity-50">
+                        {formatCurrency(mootaBal)}
+                      </span>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
             </div>
           )}
 
@@ -570,9 +655,9 @@ export default function BankMutationsTab({ bankAccounts }: BankMutationsTabProps
           {actionMode === 'credit' ? (
             /* ─── CREDIT ACTIONS ─────────────────────────── */
             <div className="space-y-3 py-2">
-              {/* Match to Invoice */}
+              {/* Match to Invoice — now shows piutang list */}
               <button
-                onClick={() => setShowLunasDialog(true)}
+                onClick={handleOpenLunasDialog}
                 className="w-full flex items-center gap-3 p-3 rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/30 hover:bg-green-100 dark:hover:bg-green-950/50 transition-colors text-left"
               >
                 <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center shrink-0">
@@ -581,9 +666,7 @@ export default function BankMutationsTab({ bankAccounts }: BankMutationsTabProps
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-green-800 dark:text-green-200">Tandai Lunas Invoice</p>
                   <p className="text-[11px] text-muted-foreground">
-                    {matchedTransactions.length > 0
-                      ? `${matchedTransactions.length} invoice cocok ditemukan`
-                      : 'Cari invoice yang belum lunas'}
+                    Pilih piutang pelanggan yang akan dibayar
                   </p>
                 </div>
               </button>
@@ -605,7 +688,6 @@ export default function BankMutationsTab({ bankAccounts }: BankMutationsTabProps
               {/* Deposit to Bank Account */}
               <button
                 onClick={() => {
-                  // Just record as deposit (do nothing extra for now, could expand)
                   toast.info('Fitur deposit langsung ke rekening - segera hadir');
                 }}
                 className="w-full flex items-center gap-3 p-3 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-950/50 transition-colors text-left opacity-60"
@@ -679,82 +761,202 @@ export default function BankMutationsTab({ bankAccounts }: BankMutationsTabProps
       </Dialog>
 
       {/* ═══════════════════════════════════════════════════════════════ */}
-      {/* LUNAS DIALOG — Select Invoice to Mark as Paid */}
+      {/* LUNAS DIALOG — Show ALL Piutang (Receivables) List */}
       {/* ═══════════════════════════════════════════════════════════════ */}
 
-      <Dialog open={showLunasDialog} onOpenChange={setShowLunasDialog}>
-        <DialogContent className="sm:max-w-lg w-[calc(100%-2rem)] max-h-[80dvh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+      <Sheet open={showLunasDialog} onOpenChange={setShowLunasDialog}>
+        <SheetContent side="bottom" className="max-h-[92dvh] overflow-hidden p-0">
+          <SheetHeader className="shrink-0 px-4 sm:px-6 pt-4 sm:pt-6 pb-2">
+            <SheetTitle className="flex items-center gap-2 text-base">
               <CheckCircle2 className="w-5 h-5 text-green-600" />
-              Pilih Invoice untuk Lunas
-            </DialogTitle>
-            <DialogDescription>
-              Invoice yang belum lunas dengan nominal mendekati{' '}
-              <span className="font-bold">{formatCurrency(Math.abs(Number(selectedMutation?.amount) || 0))}</span>
-            </DialogDescription>
-          </DialogHeader>
+              Tandai Lunas Invoice
+            </SheetTitle>
+            <SheetDescription className="text-xs">
+              Pilih piutang yang akan dibayar dari mutasi{' '}
+              <span className="font-bold text-green-700 dark:text-green-400">
+                {formatCurrency(mutationAmount)}
+              </span>
+            </SheetDescription>
+          </SheetHeader>
 
-          {matchedTransactions.length === 0 ? (
-            <div className="py-8 text-center text-muted-foreground">
-              <Search className="w-8 h-8 mx-auto mb-2 opacity-30" />
-              <p className="text-sm">Tidak ada invoice yang cocok</p>
-              <p className="text-xs mt-1">Invoice mungkin sudah lunas atau nominal tidak sesuai</p>
+          <div className="overflow-y-auto flex-1 min-h-0 overscroll-contain px-4 sm:px-6 pb-4 space-y-3">
+            {/* Admin Fee Input */}
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
+              <Banknote className="w-4 h-4 text-amber-600 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <Label className="text-xs font-medium text-amber-800 dark:text-amber-200">Biaya Admin (opsional)</Label>
+                <Input
+                  type="number"
+                  value={adminFee}
+                  onChange={(e) => setAdminFee(e.target.value)}
+                  placeholder="0"
+                  className="h-7 text-xs mt-1"
+                />
+              </div>
+              <div className="text-right shrink-0">
+                <p className="text-[10px] text-muted-foreground">Sisa bayar</p>
+                <p className="text-sm font-bold text-green-700 dark:text-green-400">
+                  {formatCurrency(availablePaymentAmount)}
+                </p>
+              </div>
             </div>
-          ) : (
-            <div className="space-y-2 max-h-[50vh] overflow-y-auto">
-              {matchedTransactions.map((tx) => (
-                <button
-                  key={tx.id}
-                  onClick={() => setSelectedTx(tx)}
-                  className={`w-full text-left p-3 rounded-lg border transition-colors ${
-                    selectedTx?.id === tx.id
-                      ? 'border-green-500 bg-green-50 dark:bg-green-950/30'
-                      : 'border-border hover:border-green-300 hover:bg-muted/50'
-                  }`}
+
+            {/* Search Bar */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+              <Input
+                value={piutangSearch}
+                onChange={(e) => setPiutangSearch(e.target.value)}
+                placeholder="Cari nama pelanggan, invoice, atau no. HP..."
+                className="h-9 text-xs pl-9"
+              />
+            </div>
+
+            {/* Piutang List */}
+            {piutangLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <RefreshCw className="w-4 h-4 animate-spin text-muted-foreground mr-2" />
+                <span className="text-sm text-muted-foreground">Memuat piutang...</span>
+              </div>
+            ) : filteredPiutang.length === 0 ? (
+              <div className="py-8 text-center text-muted-foreground">
+                <Search className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                <p className="text-sm">
+                  {piutangList.length === 0
+                    ? 'Tidak ada piutang aktif'
+                    : 'Tidak ada piutang yang cocok'}
+                </p>
+                {piutangList.length === 0 && (
+                  <p className="text-xs mt-1">Semua invoice sudah lunas</p>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-muted-foreground">
+                    {filteredPiutang.length} piutang ditemukan
+                  </span>
+                </div>
+                {filteredPiutang.map((piutang) => {
+                  const isSelected = selectedPiutang?.id === piutang.id;
+                  const isOverdue = piutang.overdueDays > 0;
+                  const canPayFull = availablePaymentAmount >= piutang.remainingAmount;
+
+                  return (
+                    <button
+                      key={piutang.id}
+                      onClick={() => setSelectedPiutang(isSelected ? null : piutang)}
+                      className={`w-full text-left p-3 rounded-lg border transition-colors ${
+                        isSelected
+                          ? 'border-green-500 bg-green-50 dark:bg-green-950/30 ring-1 ring-green-300 dark:ring-green-700'
+                          : 'border-border hover:border-green-300 hover:bg-muted/50'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="text-sm font-semibold truncate">
+                            {piutang.customerName || 'Walk-in'}
+                          </span>
+                          {isOverdue && (
+                            <Badge variant="destructive" className="text-[9px] h-4 px-1 shrink-0">
+                              {piutang.overdueDays} hari
+                            </Badge>
+                          )}
+                          {piutang.priority === 'urgent' && (
+                            <Badge className="text-[9px] h-4 px-1 bg-red-500 shrink-0">
+                              Urgent
+                            </Badge>
+                          )}
+                        </div>
+                        {isSelected && (
+                          <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
+                        )}
+                      </div>
+
+                      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                        <span className="truncate">
+                          {piutang.transaction?.invoiceNo || '-'}
+                          {piutang.transaction?.unit?.name && ` • ${piutang.transaction.unit.name}`}
+                        </span>
+                        <span className="font-medium shrink-0 ml-2">
+                          Sisa: {formatCurrency(piutang.remainingAmount)}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between text-[11px] text-muted-foreground mt-0.5">
+                        <span>
+                          Total: {formatCurrency(piutang.totalAmount)} • Sudah bayar: {formatCurrency(piutang.paidAmount)}
+                        </span>
+                        {!canPayFull && (
+                          <span className="text-amber-600 text-[10px] shrink-0">
+                            Partial
+                          </span>
+                        )}
+                      </div>
+
+                      {isSelected && (
+                        <div className="mt-2 pt-2 border-t border-green-200 dark:border-green-800">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-muted-foreground">Akan dibayar:</span>
+                            <span className="font-bold text-green-700 dark:text-green-400">
+                              {formatCurrency(Math.min(availablePaymentAmount, piutang.remainingAmount))}
+                            </span>
+                          </div>
+                          {!canPayFull && (
+                            <p className="text-[10px] text-amber-600 mt-0.5">
+                              ⚠ Pembayaran partial — sisa piutang: {formatCurrency(piutang.remainingAmount - Math.min(availablePaymentAmount, piutang.remainingAmount))}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="shrink-0 px-4 sm:px-6 py-3 border-t bg-background">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div className="text-xs text-muted-foreground">
+                {selectedPiutang ? (
+                  <>
+                    <span className="font-medium">{selectedPiutang.customerName}</span> — {selectedPiutang.transaction?.invoiceNo}
+                    {adminFeeAmount > 0 && (
+                      <span className="text-amber-600 ml-1">(Admin: {formatCurrency(adminFeeAmount)})</span>
+                    )}
+                  </>
+                ) : (
+                  'Pilih piutang di atas untuk melanjutkan'
+                )}
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setShowLunasDialog(false)} className="h-8 text-xs">
+                  Batal
+                </Button>
+                <Button
+                  onClick={handleLunas}
+                  disabled={!selectedPiutang || isProcessingLunas || matchMutation.isPending}
+                  className="h-8 text-xs bg-green-600 hover:bg-green-700"
                 >
-                  <div className="flex items-center justify-between gap-2 mb-1">
-                    <span className="text-sm font-semibold">{tx.invoiceNo}</span>
-                    <Badge variant={tx.paymentStatus === 'unpaid' ? 'destructive' : 'secondary'} className="text-[10px] h-5">
-                      {tx.paymentStatus === 'unpaid' ? 'Belum Bayar' : 'Sebagian'}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                    <span>{tx.customerName || 'Walk-in'} — {tx.unitName || '-'}</span>
-                    <span className="font-medium">Sisa: {formatCurrency(tx.remainingAmount)}</span>
-                  </div>
-                  <div className="text-[11px] text-muted-foreground mt-0.5">
-                    Total: {formatCurrency(tx.total)} • Sudah bayar: {formatCurrency(tx.paidAmount)}
-                  </div>
-                </button>
-              ))}
+                  {isProcessingLunas ? (
+                    <>
+                      <RefreshCw className="w-3 h-3 animate-spin mr-1" />
+                      Memproses...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-3 h-3 mr-1" />
+                      Tandai Lunas
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
-          )}
-
-          <DialogFooter className="flex-col gap-2 sm:flex-row">
-            <Button variant="outline" onClick={() => setShowLunasDialog(false)} className="w-full sm:w-auto">
-              Batal
-            </Button>
-            <Button
-              onClick={handleLunas}
-              disabled={!selectedTx || isProcessingLunas || matchMutation.isPending}
-              className="w-full sm:w-auto bg-green-600 hover:bg-green-700"
-            >
-              {isProcessingLunas ? (
-                <>
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin mr-1" />
-                  Memproses...
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
-                  Tandai Lunas
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </div>
+        </SheetContent>
+      </Sheet>
 
       {/* ═══════════════════════════════════════════════════════════════ */}
       {/* POOL DANA DIALOG — Select Pool for Credit */}

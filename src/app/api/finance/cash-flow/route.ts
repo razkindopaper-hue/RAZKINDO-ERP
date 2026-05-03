@@ -33,6 +33,7 @@ export async function GET(request: NextRequest) {
       courierHandoversResult,
       fundTransfersResult,
       cashbackWithdrawalsResult,
+      poolDepositsResult,
       // Server-side aggregated totals (accurate regardless of pagination limit)
       inflowTotal,
       outflowTotal,
@@ -48,17 +49,30 @@ export async function GET(request: NextRequest) {
       fetchFundTransfers(dateFilter),
       // 5. CASHBACK WITHDRAWALS — Money OUT to customers
       fetchCashbackWithdrawals(dateFilter),
+      // 6. POOL DEPOSITS — Money IN from bank mutations (pool dana deposits)
+      fetchPoolDeposits(dateFilter),
       // Server-side aggregated totals — sum all amounts directly from DB (no 500-record limit)
-      // Inflow: Sum of payments for SALE-type transactions only
-      (() => {
-        let q = db.from('payments')
-          .select('amount, transaction:transactions!transaction_id(type)')
-          .eq('transaction:type', 'sale');
-        if (dateFilter.start) q = q.gte('created_at', dateFilter.start);
-        if (dateFilter.end) q = q.lte('created_at', dateFilter.end + 'T23:59:59');
-        return q.then(({ data }) => (data || []).reduce((sum: number, p: any) => sum + (Number(p.amount) || 0), 0));
-      })(),
-      // Outflow: Sum of processed finance_requests (pay_now) excluding courier_deposit (internal transfer)
+      // Inflow: Sum of payments for SALE-type transactions + pool deposits from mutations
+      Promise.all([
+        (() => {
+          let q = db.from('payments')
+            .select('amount, transaction:transactions!transaction_id(type)')
+            .eq('transaction:type', 'sale');
+          if (dateFilter.start) q = q.gte('created_at', dateFilter.start);
+          if (dateFilter.end) q = q.lte('created_at', dateFilter.end + 'T23:59:59');
+          return q.then(({ data }) => (data || []).reduce((sum: number, p: any) => sum + (Number(p.amount) || 0), 0));
+        })(),
+        (() => {
+          let q = db.from('finance_requests')
+            .select('amount')
+            .eq('status', 'processed')
+            .eq('type', 'pool_deposit');
+          if (dateFilter.start) q = q.gte('processed_at', dateFilter.start);
+          if (dateFilter.end) q = q.lte('processed_at', dateFilter.end + 'T23:59:59');
+          return q.then(({ data }) => (data || []).reduce((sum: number, r: any) => sum + (Number(r.amount) || 0), 0));
+        })(),
+      ]).then(([payTotal, poolTotal]) => payTotal + poolTotal),
+      // Outflow: Sum of processed finance_requests (pay_now) excluding courier_deposit and pool_deposit
       // + processed cashback_withdrawals
       Promise.all([
         (() => {
@@ -66,7 +80,8 @@ export async function GET(request: NextRequest) {
             .select('amount')
             .eq('status', 'processed')
             .eq('payment_type', 'pay_now')
-            .neq('type', 'courier_deposit');
+            .neq('type', 'courier_deposit')
+            .neq('type', 'pool_deposit');
           if (dateFilter.start) q = q.gte('processed_at', dateFilter.start);
           if (dateFilter.end) q = q.lte('processed_at', dateFilter.end + 'T23:59:59');
           return q.then(({ data }) => (data || []).reduce((sum: number, r: any) => sum + (Number(r.amount) || 0), 0));
@@ -104,6 +119,7 @@ export async function GET(request: NextRequest) {
     // Merge all entries into unified format
     const allEntries: CashFlowEntry[] = [
       ...paymentsResult,
+      ...poolDepositsResult,
       ...processedRequestsResult,
       ...courierHandoversResult,
       ...fundTransfersResult,
@@ -527,6 +543,64 @@ function getRequestTypeLabel(type: string): string {
     case 'expense': return 'Pengeluaran';
     case 'courier_deposit': return 'Setoran Kurir';
     case 'cash_to_bank': return 'Setor ke Bank';
+    case 'pool_deposit': return 'Setor Pool Dana';
     default: return type;
   }
+}
+
+// ========================
+// POOL DEPOSITS FETCHER
+// ========================
+
+async function fetchPoolDeposits(dateFilter: Record<string, string>): Promise<CashFlowEntry[]> {
+  let query = db
+    .from('finance_requests')
+    .select(`
+      id,
+      type,
+      amount,
+      description,
+      status,
+      processed_at,
+      created_at,
+      bank_account:bank_accounts!finance_requests_bank_account_id_fkey(id, name, bank_name),
+      notes
+    `)
+    .eq('status', 'processed')
+    .eq('type', 'pool_deposit')
+    .order('processed_at', { ascending: false })
+    .limit(500);
+
+  if (dateFilter.start) query = query.gte('processed_at', dateFilter.start);
+  if (dateFilter.end) query = query.lte('processed_at', dateFilter.end + 'T23:59:59');
+
+  const { data } = await query;
+  if (!data) return [];
+
+  return (data || []).map((r: any) => {
+    const req = toCamelCase(r);
+    const bankName = (r.bank_account as any)?.name || 'Bank';
+    const bankLabel = (r.bank_account as any)?.bank_name || '';
+    const poolType = (req.notes || '').includes('pool_hpp') ? 'HPP'
+      : (req.notes || '').includes('pool_profit') ? 'Profit'
+      : 'Lain-lain';
+
+    return {
+      id: `pool-${req.id}`,
+      date: req.processedAt || req.createdAt,
+      direction: 'in' as const,
+      category: 'pool_deposit',
+      categoryLabel: `Setor Pool ${poolType}`,
+      description: req.description || `Setor ke Pool ${poolType} dari mutasi bank`,
+      amount: Number(req.amount) || 0,
+      source: `Bank: ${bankName}${bankLabel ? ` (${bankLabel})` : ''}`,
+      destination: `Pool ${poolType}`,
+      referenceId: req.id,
+      createdBy: 'Sistem',
+      metadata: {
+        poolType,
+        sourceType: 'bank',
+      },
+    };
+  });
 }

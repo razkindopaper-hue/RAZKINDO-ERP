@@ -187,6 +187,7 @@ const CASHFLOW_CATEGORY_COLORS: Record<string, string> = {
   courier_handover: 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300',
   fund_transfer: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900 dark:text-cyan-300',
   cashback_withdrawal: 'bg-pink-100 text-pink-700 dark:bg-pink-900 dark:text-pink-300',
+  pool_deposit: 'bg-violet-100 text-violet-700 dark:bg-violet-900 dark:text-violet-300',
 };
 
 // ================================
