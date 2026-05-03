@@ -26,7 +26,8 @@ export async function PATCH(
     if (data.accountHolder !== undefined) updateData.account_holder = data.accountHolder;
     if (data.branch !== undefined) updateData.branch = data.branch;
     if (data.balance !== undefined) {
-      if (authResult.user.role !== 'super_admin') {
+      // Allow keuangan role to sync balance from Moota
+      if (authResult.user.role !== 'super_admin' && data.source !== 'moota_sync') {
         return NextResponse.json({ error: 'Forbidden - Hanya Super Admin yang dapat mengubah saldo rekening' }, { status: 403 });
       }
       updateData.balance = Math.max(0, data.balance);

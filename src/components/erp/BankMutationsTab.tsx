@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { apiFetch } from '@/lib/api-client';
@@ -14,7 +14,6 @@ import {
   ChevronLeft,
   ChevronRight,
   ExternalLink,
-  Eye,
   CheckCircle2,
   DollarSign,
   Receipt,
@@ -24,9 +23,7 @@ import {
   X,
   Search,
   CalendarDays,
-  AlertTriangle,
   Banknote,
-  Filter,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -177,10 +174,37 @@ export default function BankMutationsTab({ bankAccounts }: BankMutationsTabProps
   const totalPages = mutationsData?.last_page || 1;
   const totalMutations = mutationsData?.total || 0;
 
+  // Sync receivables mutation — auto-sync before fetching piutang list
+  const syncReceivables = useMutation({
+    mutationFn: () => apiFetch('/api/finance/receivables/sync', { method: 'POST' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['piutang-for-mutation'] });
+    },
+  });
+
+  // Sync bank balance from Moota
+  const syncBankBalance = useMutation({
+    mutationFn: async (params: { bankAccountId: string; mootaBalance: number }) => {
+      return apiFetch(`/api/finance/bank-accounts/${params.bankAccountId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ balance: params.mootaBalance, source: 'moota_sync' }),
+      });
+    },
+    onSuccess: () => {
+      toast.success('Saldo rekening berhasil disinkronkan dari Moota');
+      queryClient.invalidateQueries({ queryKey: ['bank-accounts'] });
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
   // Fetch ALL active piutang for lunas dialog (only when dialog is open)
   const { data: piutangData, isLoading: piutangLoading } = useQuery({
     queryKey: ['piutang-for-mutation'],
-    queryFn: () => apiFetch<{ receivables: any[] }>('/api/finance/receivables?status=active'),
+    queryFn: async () => {
+      // First sync receivables to ensure all unpaid tx are in the list
+      try { await syncReceivables.mutateAsync(); } catch { /* best effort */ }
+      return apiFetch<{ receivables: any[] }>('/api/finance/receivables?status=active');
+    },
     enabled: showLunasDialog,
     staleTime: 30000,
   });
@@ -361,6 +385,16 @@ export default function BankMutationsTab({ bankAccounts }: BankMutationsTabProps
     });
   };
 
+  const handleSyncBankBalance = (mootaBank: MootaBank) => {
+    const sysBank = bankAccounts.find((ba: any) => ba.accountNo === mootaBank.account_number);
+    if (!sysBank) {
+      toast.error('Rekening belum terdaftar di sistem. Tambahkan di Pengaturan → Rekening Bank.');
+      return;
+    }
+    const mootaBal = Number(mootaBank.balance) || 0;
+    syncBankBalance.mutate({ bankAccountId: sysBank.id, mootaBalance: mootaBal });
+  };
+
   const selectedBank = mootaBanks.find(b => b.bank_id === selectedBankId);
 
   return (
@@ -435,6 +469,7 @@ export default function BankMutationsTab({ bankAccounts }: BankMutationsTabProps
 
           {/* Bank selector — with system balance sync */}
           {mootaBanks.length > 0 && (
+            <div className="space-y-2">
             <div className="flex flex-wrap gap-2">
             {mootaBanks.map((bank) => {
               const sysBank = bankAccounts.find(
@@ -480,6 +515,30 @@ export default function BankMutationsTab({ bankAccounts }: BankMutationsTabProps
                 </button>
               );
             })}
+            </div>
+            {/* Sync button if any bank has balance mismatch */}
+            {mootaBanks.some(bank => {
+              const sysBank = bankAccounts.find((ba: any) => ba.accountNo === bank.account_number);
+              return sysBank && Math.abs(Number(bank.balance) - Number(sysBank.balance)) > 1;
+            }) && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 text-[10px] gap-1 border-amber-200 text-amber-700 hover:bg-amber-50"
+                onClick={() => {
+                  const selectedMootaBank = mootaBanks.find(b => b.bank_id === selectedBankId);
+                  if (selectedMootaBank) handleSyncBankBalance(selectedMootaBank);
+                }}
+                disabled={syncBankBalance.isPending}
+              >
+                {syncBankBalance.isPending ? (
+                  <RefreshCw className="w-3 h-3 animate-spin" />
+                ) : (
+                  <Building2 className="w-3 h-3" />
+                )}
+                Sync Saldo dari Moota
+              </Button>
+            )}
             </div>
           )}
 
@@ -816,7 +875,7 @@ export default function BankMutationsTab({ bankAccounts }: BankMutationsTabProps
             {piutangLoading ? (
               <div className="flex items-center justify-center py-8">
                 <RefreshCw className="w-4 h-4 animate-spin text-muted-foreground mr-2" />
-                <span className="text-sm text-muted-foreground">Memuat piutang...</span>
+                <span className="text-sm text-muted-foreground">Sinkronisasi piutang & memuat data...</span>
               </div>
             ) : filteredPiutang.length === 0 ? (
               <div className="py-8 text-center text-muted-foreground">

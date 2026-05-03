@@ -100,3 +100,26 @@ Stage Summary:
 - Fix: Restarted dev server — now running and serving pages correctly
 - All mutasi features from previous session (piutang list, admin fee, arus kas, bank balance sync) are intact and compiling
 - No code changes needed
+
+---
+Task ID: 2
+Agent: Main Agent
+Task: Fix mutasi integration — bank balance sync & piutang list showing all unpaid invoices
+
+Work Log:
+- Investigated database: bank_accounts has static balance 50,000,000 while Moota shows 18,201,559
+- Investigated piutang: only 1 receivable in table but 3 unpaid approved transactions exist
+- Root cause 1 (bank balance): bank_accounts.balance is manually set, never synced from Moota
+- Root cause 2 (piutang list): receivables table only populated via manual sync — not auto-synced
+- Added auto-sync: piutang query now calls /api/finance/receivables/sync before fetching list
+- Added "Sync Saldo dari Moota" button on bank selector when balance mismatch detected
+- Updated bank-accounts PATCH endpoint to allow keuangan role to sync balance (source: 'moota_sync')
+- Cleaned up unused imports (useEffect, Eye, AlertTriangle, Filter)
+- TypeScript compilation: 0 errors in all modified files
+- Page compiles successfully: GET / 200 in 6.6s
+
+Stage Summary:
+- BankMutationsTab.tsx: Added auto-sync piutang on dialog open + "Sync Saldo dari Moota" button
+- bank-accounts/[id]/route.ts: Allow keuangan role to update balance via moota_sync source
+- Piutang dialog now shows ALL unpaid invoices (auto-creates missing receivables from unpaid transactions)
+- Bank balance can be synced from Moota with one click (appears when mismatch detected)
