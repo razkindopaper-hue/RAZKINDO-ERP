@@ -36,6 +36,9 @@ import {
   DialogFooter, DialogDescription,
 } from '@/components/ui/dialog';
 import {
+  Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetDescription
+} from '@/components/ui/sheet';
+import {
   Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
 } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -354,11 +357,11 @@ function CustomerForm({ unitId, units, onSuccess, customer, salesUserId }: {
         </div>
       </div>
 
-      <DialogFooter>
+      <div className="flex justify-end pt-2">
         <Button type="submit" disabled={loading || (!formData.unitId && needsUnitSelection)}>
           {loading ? 'Menyimpan...' : isEdit ? 'Update' : 'Simpan'}
         </Button>
-      </DialogFooter>
+      </div>
 
       {/* Duplicate Customer Warning — with Take Over option for Super Admin */}
       <Dialog open={!!dupWarning} onOpenChange={(open) => { if (!open) setDupWarning(null); }}>
@@ -844,29 +847,32 @@ export default function CustomerManagementModule() {
               </Button>
             )}
 
-            <Dialog open={showCreate} onOpenChange={setShowCreate}>
-              <DialogTrigger asChild>
+            <Sheet open={showCreate} onOpenChange={setShowCreate}>
+              <SheetTrigger asChild>
                 <Button>
                   <Plus className="w-4 h-4 mr-2" />
                   Pelanggan Baru
                 </Button>
-              </DialogTrigger>
-              <DialogContent className="w-[calc(100vw-2rem)] sm:w-full">
-                <DialogHeader>
-                  <DialogTitle>Tambah Pelanggan</DialogTitle>
-                </DialogHeader>
-                <CustomerForm
-                  unitId={unitId || ''}
-                  units={units}
-                  salesUserId={undefined}
-                  onSuccess={() => {
-                    setShowCreate(false);
-                    queryClient.invalidateQueries({ queryKey: ['customers'] });
-                    queryClient.invalidateQueries({ queryKey: ['customer-monitoring'] });
-                  }}
-                />
-              </DialogContent>
-            </Dialog>
+              </SheetTrigger>
+              <SheetContent side="bottom" className="rounded-t-2xl max-h-[92dvh] overflow-hidden">
+                <SheetHeader className="shrink-0">
+                  <SheetTitle>Tambah Pelanggan</SheetTitle>
+                  <SheetDescription>Isi data pelanggan baru</SheetDescription>
+                </SheetHeader>
+                <div className="overflow-y-auto flex-1 min-h-0 overscroll-contain px-4 pb-4">
+                  <CustomerForm
+                    unitId={unitId || ''}
+                    units={units}
+                    salesUserId={undefined}
+                    onSuccess={() => {
+                      setShowCreate(false);
+                      queryClient.invalidateQueries({ queryKey: ['customers'] });
+                      queryClient.invalidateQueries({ queryKey: ['customer-monitoring'] });
+                    }}
+                  />
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
 
           {/* Customer Cards Grid */}
@@ -1160,27 +1166,30 @@ export default function CustomerManagementModule() {
         </div>
       )}
 
-      {/* ============ EDIT CUSTOMER DIALOG ============ */}
-      <Dialog open={!!editingCustomer} onOpenChange={(open) => { if (!open) setEditingCustomer(null); }}>
-        <DialogContent className="w-[calc(100vw-2rem)] sm:w-full">
-          <DialogHeader>
-            <DialogTitle>Edit Pelanggan</DialogTitle>
-          </DialogHeader>
-          {editingCustomer && (
-            <CustomerForm
-              unitId={unitId || ''}
-              units={units}
-              customer={editingCustomer}
-              salesUserId={undefined}
-              onSuccess={() => {
-                setEditingCustomer(null);
-                queryClient.invalidateQueries({ queryKey: ['customers'] });
-                queryClient.invalidateQueries({ queryKey: ['customer-monitoring'] });
-              }}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* ============ EDIT CUSTOMER SHEET ============ */}
+      <Sheet open={!!editingCustomer} onOpenChange={(open) => { if (!open) setEditingCustomer(null); }}>
+        <SheetContent side="bottom" className="rounded-t-2xl max-h-[92dvh] overflow-hidden">
+          <SheetHeader className="shrink-0">
+            <SheetTitle>Edit Pelanggan</SheetTitle>
+            <SheetDescription>Ubah data pelanggan</SheetDescription>
+          </SheetHeader>
+          <div className="overflow-y-auto flex-1 min-h-0 overscroll-contain px-4 pb-4">
+            {editingCustomer && (
+              <CustomerForm
+                unitId={unitId || ''}
+                units={units}
+                customer={editingCustomer}
+                salesUserId={undefined}
+                onSuccess={() => {
+                  setEditingCustomer(null);
+                  queryClient.invalidateQueries({ queryKey: ['customers'] });
+                  queryClient.invalidateQueries({ queryKey: ['customer-monitoring'] });
+                }}
+              />
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
 
       {/* ============ DELETE CONFIRMATION DIALOG ============ */}
       <Dialog open={!!deletingCustomer} onOpenChange={(open) => { if (!open) setDeletingCustomer(null); }}>
