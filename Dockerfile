@@ -6,45 +6,21 @@
 # --- Stage 1: Dependencies ---
 FROM oven/bun:1-alpine AS deps
 WORKDIR /app
-
 COPY package.json bun.lock* ./
 RUN bun install --frozen-lockfile
-
-# Collect list of external packages needed at runtime (for COPY in runner stage)
-RUN node -e "
-const pkg = require('./package.json');
-const externals = ['pg','bcryptjs','@prisma/client','prisma','ioredis','sharp'];
-const all = [...externals];
-// Add pg sub-packages
-for (const d of Object.keys(pkg.dependencies || {})) {
-  if (d.startsWith('pg-') || d === 'pg-native' || d === 'buffer-writer') all.push(d);
-}
-// Add sharp sub-packages
-if (pkg.dependencies['sharp']) {
-  for (const d of Object.keys(pkg.dependencies || {})) {
-    if (d.startsWith('@img/') || d === 'color' || d === 'semver' || d === 'detect-libc') all.push(d);
-  }
-}
-console.log(all.join(' '));
-" > /tmp/externals.txt
-RUN echo "=== External packages for runtime ===" && cat /tmp/externals.txt
 
 # --- Stage 2: Build ---
 FROM oven/bun:1-alpine AS builder
 WORKDIR /app
-
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/package.json ./
 COPY . .
 
-# Generate Prisma client
 RUN bunx prisma generate
 
-# Build Next.js standalone
 ENV STB_MODE=true
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
-
 RUN bun run build
 
 # --- Stage 3: Production ---
@@ -56,10 +32,8 @@ ENV STB_MODE=true
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 
-# Install runtime dependencies for native modules
 RUN apk add --no-cache libc6-compat openssl
 
-# Create non-root user
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 appuser
 
@@ -70,16 +44,13 @@ COPY --from=builder --chown=appuser:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=appuser:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=appuser:nodejs /app/public ./public
 
-# Copy ALL node_modules — needed for serverExternalPackages
-# (pg, bcryptjs, @prisma/client, ioredis, sharp) which standalone
-# does NOT bundle. Without these, login & DB queries fail.
+# Copy node_modules for serverExternalPackages (pg, bcryptjs, @prisma, ioredis, sharp)
+# Next.js standalone does NOT bundle these — they must be present at runtime.
 COPY --from=deps --chown=appuser:nodejs /app/node_modules ./node_modules
 
-# Create required directories
 RUN mkdir -p /app/db /app/logs && chown -R appuser:nodejs /app
 
 USER appuser
-
 EXPOSE 3000 81
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
