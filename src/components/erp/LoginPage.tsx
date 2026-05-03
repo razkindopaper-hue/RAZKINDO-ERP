@@ -170,7 +170,13 @@ function LoginPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, password })
         });
-        const data = await res.json();
+        let data: any;
+        try {
+          data = await res.json();
+        } catch {
+          // Server returned non-JSON (e.g., HTML error page) — treat as server error
+          throw new Error('Terjadi kesalahan server. Silakan coba lagi.');
+        }
         if (!res.ok) throw new Error(data.error || 'Login gagal');
 
         login(data.user, data.token);
@@ -181,7 +187,12 @@ function LoginPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ...formData, email })
         });
-        const data = await res.json();
+        let data: any;
+        try {
+          data = await res.json();
+        } catch {
+          throw new Error('Terjadi kesalahan server. Silakan coba lagi.');
+        }
         if (!res.ok) throw new Error(data.error || 'Registrasi gagal');
         if (data.user.status === 'approved') {
           const loginRes = await fetch('/api/auth/login', {
@@ -189,7 +200,12 @@ function LoginPage() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password })
           });
-          const loginData = await loginRes.json();
+          let loginData: any;
+          try {
+            loginData = await loginRes.json();
+          } catch {
+            throw new Error('Registrasi berhasil, tapi gagal auto-login. Silakan login manual.');
+          }
           if (loginRes.ok && loginData.token) {
             login(loginData.user, loginData.token);
             toast.success('Registrasi berhasil! Selamat datang.');
@@ -227,7 +243,12 @@ function LoginPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: resetPhone })
       });
-      const data = await res.json();
+      let data: any;
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error('Terjadi kesalahan server. Silakan coba lagi.');
+      }
       if (!res.ok) throw new Error(data.error || 'Gagal mengirim kode');
 
       toast.success(data.message || 'Kode pemulihan dikirim via WhatsApp.');
@@ -274,7 +295,12 @@ function LoginPage() {
           newPassword
         })
       });
-      const data = await res.json();
+      let data: any;
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error('Terjadi kesalahan server. Silakan coba lagi.');
+      }
       if (!res.ok) throw new Error(data.error || 'Gagal mereset password');
 
       toast.success(data.message || 'Password berhasil diubah!');
@@ -296,7 +322,12 @@ function LoginPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: resetPhone })
       });
-      const data = await res.json();
+      let data: any;
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error('Terjadi kesalahan server. Silakan coba lagi.');
+      }
       if (!res.ok) throw new Error(data.error || 'Gagal mengirim ulang kode');
       toast.success(data.message || 'Kode baru dikirim via WhatsApp!');
       setCodeCountdown(60);

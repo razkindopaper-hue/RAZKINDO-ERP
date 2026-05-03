@@ -48,7 +48,10 @@ COPY --from=builder --chown=appuser:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=appuser:nodejs /app/public ./public
 
 # Copy node_modules for serverExternalPackages
-COPY --from=deps --chown=appuser:nodejs /app/node_modules ./node_modules
+# IMPORTANT: Must copy from builder (Stage 2), NOT deps (Stage 1)
+# because prisma generate runs in Stage 2 and outputs to node_modules/.prisma/client
+# Without this, the PrismaClient import fails at runtime → 500 Internal Server Error
+COPY --from=builder --chown=appuser:nodejs /app/node_modules ./node_modules
 
 RUN mkdir -p /app/db /app/logs && chown -R appuser:nodejs /app
 
