@@ -133,10 +133,10 @@ export async function PUT(request: NextRequest) {
       finalLainLain = Math.max(0, Math.round(totalPhysical - finalHpp - finalProfit));
     }
 
-    // Save atomically
-    await db.from('settings').upsert({ key: 'pool_hpp_paid_balance', value: JSON.stringify(finalHpp) }, { onConflict: 'key' });
-    await db.from('settings').upsert({ key: 'pool_profit_paid_balance', value: JSON.stringify(finalProfit) }, { onConflict: 'key' });
-    await db.from('settings').upsert({ key: 'pool_investor_fund', value: JSON.stringify(finalLainLain) }, { onConflict: 'key' });
+    // Save atomically — use the atomic RPC for upsert to avoid missing required fields
+    await db.rpc('atomic_update_setting_balance', { p_key: 'pool_hpp_paid_balance', p_delta: finalHpp - currentHpp });
+    await db.rpc('atomic_update_setting_balance', { p_key: 'pool_profit_paid_balance', p_delta: finalProfit - currentProfit });
+    await db.rpc('atomic_update_setting_balance', { p_key: 'pool_investor_fund', p_delta: finalLainLain - currentLainLain });
 
     // Write ledger entries for pool adjustments (audit only — balances already updated above)
     const adjustmentJournalId = generateId();
@@ -265,9 +265,14 @@ export async function POST(request: NextRequest) {
 
       const investorFund = Math.max(0, totalPhysical - hppPaidBalance - profitPaidBalance);
 
-      await db.from('settings').upsert({ key: 'pool_hpp_paid_balance', value: JSON.stringify(hppPaidBalance) }, { onConflict: 'key' });
-      await db.from('settings').upsert({ key: 'pool_profit_paid_balance', value: JSON.stringify(profitPaidBalance) }, { onConflict: 'key' });
-      await db.from('settings').upsert({ key: 'pool_investor_fund', value: JSON.stringify(investorFund) }, { onConflict: 'key' });
+      // Use atomic RPC for upsert (handles missing id/timestamps)
+      // For sync, we set the value directly by computing delta from current
+      const currentHpp = await getPoolBalance('pool_hpp_paid_balance');
+      const currentProfit = await getPoolBalance('pool_profit_paid_balance');
+      const currentLainLain = await getPoolBalance('pool_investor_fund');
+      await db.rpc('atomic_update_setting_balance', { p_key: 'pool_hpp_paid_balance', p_delta: hppPaidBalance - currentHpp, p_min: -999999999 });
+      await db.rpc('atomic_update_setting_balance', { p_key: 'pool_profit_paid_balance', p_delta: profitPaidBalance - currentProfit, p_min: -999999999 });
+      await db.rpc('atomic_update_setting_balance', { p_key: 'pool_investor_fund', p_delta: investorFund - currentLainLain, p_min: -999999999 });
 
       try {
         createLog(db, {

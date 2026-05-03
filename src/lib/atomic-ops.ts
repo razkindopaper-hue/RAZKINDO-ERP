@@ -56,7 +56,8 @@ export async function atomicUpdatePoolBalance(
 
 /**
  * Get a pool balance from settings table.
- * Settings are stored as JSON stringified numbers.
+ * Settings can be stored as plain text numbers or JSON stringified numbers.
+ * Auto-creates the setting if it doesn't exist.
  */
 export async function getPoolBalance(key: string): Promise<number> {
   const { data } = await db
@@ -64,11 +65,26 @@ export async function getPoolBalance(key: string): Promise<number> {
     .select('value')
     .eq('key', key)
     .maybeSingle();
-  if (!data) return 0;
-  try {
-    return parseFloat(JSON.parse(data.value)) || 0;
-  } catch {
+  if (!data) {
+    // Auto-create pool setting with 0 balance
+    const { generateId } = await import('@/lib/supabase-helpers');
+    const now = new Date().toISOString();
+    try { await db.from('settings').insert({
+      id: generateId(),
+      key,
+      value: '0',
+      created_at: now,
+      updated_at: now,
+    }); } catch { /* best effort */ }
     return 0;
+  }
+  try {
+    // Try JSON.parse first (for JSON stringified values like "1724500")
+    const parsed = JSON.parse(data.value);
+    return parseFloat(parsed) || 0;
+  } catch {
+    // Fallback: parse as plain number string (for values like "1724500")
+    return parseFloat(data.value) || 0;
   }
 }
 

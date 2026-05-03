@@ -123,3 +123,26 @@ Stage Summary:
 - bank-accounts/[id]/route.ts: Allow keuangan role to update balance via moota_sync source
 - Piutang dialog now shows ALL unpaid invoices (auto-creates missing receivables from unpaid transactions)
 - Bank balance can be synced from Moota with one click (appears when mismatch detected)
+
+---
+Task ID: 3
+Agent: Main Agent
+Task: Fix Transfer Dana Pool error — "Insufficient pool balance. Current: 0"
+
+Work Log:
+- Screenshot showed "Insufficient pool balance. Current: 0, Attempted change: -1000000" error in Transfer Dana Pool dialog
+- Root cause: Pool balance settings (pool_hpp_paid_balance, pool_profit_paid_balance, pool_investor_fund) did not exist in settings table
+- Initialized all 3 pool balance settings in database
+- Synced pool balances from actual data: HPP=1,724,500, Profit=251,000, Lain-lain=31,226,059 (total=33,201,559 = brankas 15M + rekening 18.2M)
+- Fixed getPoolBalance() to auto-create missing settings with 0 balance
+- Fixed getPoolBalance() to handle both JSON stringified and plain number values
+- Fixed pools/route.ts: replaced broken upsert calls (missing id/timestamps) with atomic RPC calls
+- Fixed pools/route.ts sync_from_payments: use delta-based RPC approach with negative min_balance
+- Cleaned up TypeScript error in atomic-ops.ts (.catch() on void promise)
+
+Stage Summary:
+- Pool balances now properly initialized: HPP=1,724,500, Profit=251,000, Lain-lain=31,226,059
+- Transfer Dana Pool will work correctly — pool is no longer 0
+- Pool auto-syncs from physical balances (bank + brankas)
+- getPoolBalance auto-creates missing settings
+- All upserts use atomic RPC (no missing required fields)
