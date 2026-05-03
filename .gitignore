@@ -25,8 +25,8 @@ server.log
 dev.log
 dev.out.log
 
-# env files — JANGAN COMMIT (contains secrets)
-.env
+# env files — .env.production is only local override
+# .env is committed for STB deployment convenience
 .env.local
 .env.production
 .env*.local
