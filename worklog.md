@@ -146,3 +146,25 @@ Stage Summary:
 - Pool auto-syncs from physical balances (bank + brankas)
 - getPoolBalance auto-creates missing settings
 - All upserts use atomic RPC (no missing required fields)
+
+---
+Task ID: 4
+Agent: Main Agent
+Task: Fix PWA customer "Harga Pengajuan" not changing to "Harga Deal" after sales approval
+
+Work Log:
+- Investigated PWA customer pricing flow: products API → deal price from customer_prices → display logic
+- Found the Supabase `upsert` with composite key `onConflict: 'customer_id,product_id'` was likely failing silently (non-blocking catch)
+- Replaced the upsert approach with a more reliable find-existing → insert/update pattern in approve API
+- Added fallback in products API: if no customer_prices entry exists, uses price from customer's most recent approved transaction
+- Added "Harga Deal" label badge in Riwayat tab for approved order items (was only showing price number)
+- Added "Menunggu konfirmasi" label for pending order items (was showing nothing)
+- Changed approved item price text to green (emerald) to visually distinguish deal prices
+- Synced changes to duplicate `app/c/[code]/page.tsx`
+
+Stage Summary:
+- `/api/pwa-orders/approve/route.ts`: Replaced unreliable upsert with batch find+insert/update for customer_prices
+- `/api/pwa/[code]/products/route.ts`: Added fallback deal price from approved transaction items when customer_prices is empty
+- `src/app/c/[code]/page.tsx`: Added "Harga Deal" badge in Riwayat tab + "Menunggu konfirmasi" for pending items
+- Now: After sales approves an order, the deal price is reliably saved AND shown as "Harga Deal" in PWA
+- Even if customer_prices was never populated (historical data), the products API fallback ensures correct display

@@ -445,36 +445,77 @@ export async function POST(request: NextRequest) {
     // for that customer-product combination. This allows the customer to see their
     // negotiated price in the PWA for future orders.
     try {
-      for (const item of updatedItems) {
-        if (!item.product_id || !item.price || item.price <= 0) continue;
+      // Collect all product IDs that need deal price saving
+      const priceItems = updatedItems.filter(i => i.product_id && i.price && i.price > 0);
+      const priceProductIds = priceItems.map(i => i.product_id);
 
-        // Upsert: insert new or update existing deal price
-        // FIX: Must include id + created_at because Prisma @default() doesn't create DB-level defaults
-        await db
+      // Batch fetch existing customer_prices for this customer + products
+      let existingPrices: Array<{ id: string; product_id: string }> = [];
+      if (priceProductIds.length > 0) {
+        const { data: existingData } = await db
           .from('customer_prices')
-          .upsert({
-            id: generateId(),
-            customer_id: customer.id,
-            product_id: item.product_id,
-            deal_price: item.price,
-            sub_unit_price: 0, // will be calculated below if conversionRate available
-            approved_by_id: authUser.id,
-            transaction_id: transactionId,
-            is_active: true,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          }, {
-            onConflict: 'customer_id,product_id',
-          });
+          .select('id, product_id')
+          .eq('customer_id', customer.id)
+          .in('product_id', priceProductIds);
+        if (Array.isArray(existingData)) {
+          existingPrices = existingData;
+        }
+      }
+
+      // Build map of product_id → existing record id
+      const existingMap = new Map<string, string>();
+      for (const ep of existingPrices) {
+        existingMap.set(ep.product_id, ep.id);
+      }
+
+      // Now insert or update each item's deal price
+      for (const item of priceItems) {
+        const existingId = existingMap.get(item.product_id);
+
+        if (existingId) {
+          // Update existing record
+          const { error: updateErr } = await db
+            .from('customer_prices')
+            .update({
+              deal_price: item.price,
+              sub_unit_price: 0, // will be recalculated below
+              approved_by_id: authUser.id,
+              transaction_id: transactionId,
+              is_active: true,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', existingId);
+          if (updateErr) {
+            console.error(`[PWA APPROVE] Failed to UPDATE deal price for ${item.product_id}:`, updateErr);
+          }
+        } else {
+          // Insert new record
+          const { error: insertErr } = await db
+            .from('customer_prices')
+            .insert({
+              id: generateId(),
+              customer_id: customer.id,
+              product_id: item.product_id,
+              deal_price: item.price,
+              sub_unit_price: 0,
+              approved_by_id: authUser.id,
+              transaction_id: transactionId,
+              is_active: true,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            });
+          if (insertErr) {
+            console.error(`[PWA APPROVE] Failed to INSERT deal price for ${item.product_id}:`, insertErr);
+          }
+        }
       }
 
       // Also calculate sub-unit prices based on conversion rates
-      const productIds = updatedItems.map(i => i.product_id).filter(Boolean);
-      if (productIds.length > 0) {
+      if (priceProductIds.length > 0) {
         const { data: productData } = await db
           .from('products')
           .select('id, conversion_rate, sell_price_per_sub_unit')
-          .in('id', productIds);
+          .in('id', priceProductIds);
 
         if (productData) {
           for (const prod of productData) {

@@ -59,11 +59,12 @@ export async function GET(
       unitProductsResult,
       productsResult,
       dealPricesResult,
+      approvedPricesResult,
     ] = await Promise.all([
       // Purchase history: single nested query (no batching needed)
       db
         .from('transactions')
-        .select('transaction_items(product_id, qty, created_at)')
+        .select('transaction_items(product_id, qty, price, created_at)')
         .eq('customer_id', customer.id)
         .eq('type', 'sale')
         .neq('status', 'cancelled'),
@@ -88,6 +89,16 @@ export async function GET(
         .select('product_id, deal_price, sub_unit_price, updated_at')
         .eq('customer_id', customer.id)
         .eq('is_active', true),
+
+      // Fallback: fetch latest approved transaction item prices per product
+      db
+        .from('transactions')
+        .select('id, transaction_items(product_id, price, created_at)')
+        .eq('customer_id', customer.id)
+        .eq('status', 'approved')
+        .eq('type', 'sale')
+        .order('created_at', { ascending: false })
+        .limit(100),
     ]);
 
     // ── Build purchase frequency map from nested results ──
@@ -132,6 +143,29 @@ export async function GET(
           subUnitPrice: dp.sub_unit_price || 0,
           updatedAt: dp.updated_at || '',
         });
+      }
+    }
+
+    // ── Fallback: Build deal price from latest approved transaction items ──
+    // If customer_prices has no entry for a product, use the price from
+    // the customer's most recent approved transaction for that product
+    const approvedTxs = approvedPricesResult.data;
+    if (Array.isArray(approvedTxs)) {
+      for (const tx of approvedTxs) {
+        const items = (tx as any).transaction_items;
+        if (!Array.isArray(items)) continue;
+        for (const item of items) {
+          const pid = item.product_id;
+          if (!pid) continue;
+          // Only use as fallback if no deal price exists yet in customer_prices
+          if (!dealPriceMap.has(pid) && item.price && item.price > 0) {
+            dealPriceMap.set(pid, {
+              dealPrice: item.price,
+              subUnitPrice: 0,
+              updatedAt: item.created_at || '',
+            });
+          }
+        }
       }
     }
 

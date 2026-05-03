@@ -1584,10 +1584,17 @@ export default function CustomerPWAPage({
                                 {/* Items list */}
                                 {(order.items || []).length > 0 && (
                                   <div className="space-y-1.5">
-                                    <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider flex items-center gap-1">
-                                      <Package className="w-3 h-3" />
-                                      Detail Item ({(order.items || []).length})
-                                    </p>
+                                    <div className="flex items-center justify-between">
+                                      <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider flex items-center gap-1">
+                                        <Package className="w-3 h-3" />
+                                        Detail Item ({(order.items || []).length})
+                                      </p>
+                                      {order.status === 'approved' && (
+                                        <span className="text-[9px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-md">
+                                          Harga Deal
+                                        </span>
+                                      )}
+                                    </div>
                                     <div className="bg-gray-50 rounded-xl p-2.5 space-y-1.5">
                                       {(order.items || []).map((item: any, idx: number) => (
                                         <div
@@ -1598,11 +1605,15 @@ export default function CustomerPWAPage({
                                             {item.productName}{' '}
                                             <span className="text-gray-400 font-medium">x{item.qty}</span>
                                           </span>
-                                          {order.status === 'approved' && item.price > 0 && (
-                                            <span className="text-gray-500 font-medium shrink-0 text-[10px]">
+                                          {order.status === 'approved' && item.price > 0 ? (
+                                            <span className="text-emerald-700 font-semibold shrink-0 text-[10px]">
                                               @Rp {item.price.toLocaleString('id-ID')} = {formatCurrency(item.subtotal || item.price * item.qty)}
                                             </span>
-                                          )}
+                                          ) : order.status === 'pending' ? (
+                                            <span className="text-amber-500 font-medium shrink-0 text-[10px]">
+                                              Menunggu konfirmasi
+                                            </span>
+                                          ) : null}
                                         </div>
                                       ))}
                                     </div>

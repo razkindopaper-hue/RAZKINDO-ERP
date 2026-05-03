@@ -1,5 +1,3 @@
-// Razkindo ERP - Compact Complex Database Schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,101 +8,88 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-// ================================
-// CUSTOM ROLES (Non-ERP Employees)
-// ================================
-
 model CustomRole {
   id          String   @id @default(cuid())
-  name        String   @unique  // e.g., "OB", "Sopir", "Security", "Driver"
+  name        String   @unique
   description String?
   createdById String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
   createdBy   User     @relation("CustomRoleCreator", fields: [createdById], references: [id])
   users       User[]
-  
+
   @@map("custom_roles")
 }
 
-// ================================
-// CORE TABLES
-// ================================
-
 model Unit {
-  id        String   @id @default(cuid())
-  name      String
-  address   String?
-  phone     String?
-  isActive  Boolean  @default(true) @map("is_active")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-  
-  users       User[]
-  userUnits   UserUnit[]
-  transactions Transaction[]
-  products    UnitProduct[]
-  customers   Customer[]
-  cashBoxes   CashBox[]
-  courierCash CourierCash[]
+  id             String          @id @default(cuid())
+  name           String
+  address        String?
+  phone          String?
+  isActive       Boolean         @default(true) @map("is_active")
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+  cashBoxes      CashBox[]
+  courierCash    CourierCash[]
+  customers      Customer[]
   salaryPayments SalaryPayment[] @relation("SalarySourceUnit")
-  
+  transactions   Transaction[]
+  products       UnitProduct[]
+  userUnits      UserUnit[]
+  users          User[]
+
   @@map("units")
 }
 
 model User {
-  id            String   @id @default(cuid())
-  email         String   @unique
-  password      String
-  name          String
-  phone         String?
-  role          String   // super_admin, sales, kurir, keuangan, or custom role name
-  customRoleId  String?  @map("custom_role_id") // If set, this is a non-ERP employee (OB, Sopir, etc.)
-  unitId        String?  @map("unit_id")
-  status        String   @default("pending") // pending, approved, rejected
-  canLogin      Boolean  @default(true) @map("can_login") // false for non-ERP employees (OB, sopir, etc.)
-  avatar        String?
-  lastSeenAt    DateTime? @map("last_seen_at")
-  currentPage   String?  @map("current_page")
-  lastAction    String?  @map("last_action")
-  isActive      Boolean  @default(true) @map("is_active")
-  
-  // Courier commission (per delivery, based on customer distance)
-  nearCommission Decimal @default(0) @db.Decimal(15,2) @map("near_commission") // komisi untuk pengiriman dekat
-  farCommission  Decimal @default(0) @db.Decimal(15,2) @map("far_commission") // komisi untuk pengiriman jauh
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
-  
-  unit         Unit?        @relation(fields: [unitId], references: [id])
-  customRole   CustomRole?  @relation(fields: [customRoleId], references: [id])
-  userUnits    UserUnit[]
-  createdCustomRoles CustomRole[] @relation("CustomRoleCreator")
-  transactions Transaction[] @relation("TransactionCreator")
-  assignedDeliveries Transaction[] @relation("AssignedCourier")
-  payments     Payment[]
-  salaryPayments SalaryPayment[]
-  assignedReceivables Receivable[] @relation("AssignedReceivable")
-  courierCash      CourierCash[]
-  assignedCustomers Customer[] @relation("CustomerSales")
-  customerFollowUps CustomerFollowUp[] @relation("FollowUpCreator")
-  salesTargets      SalesTarget[]
-  assignedTasks     SalesTask[] @relation("TaskAssignedTo")
-  createdTasks      SalesTask[] @relation("TaskAssignedBy")
-  taskReports       SalesTaskReport[] @relation("TaskReportedBy")
-  createdDebts      CompanyDebt[] @relation("DebtCreator")
-  debtPayments      CompanyDebtPayment[] @relation("DebtPaymentPaidBy")
-  receivableCreatedBy Receivable[] @relation("ReceivableCreator")
+  id                          String               @id @default(cuid())
+  email                       String               @unique
+  password                    String
+  name                        String
+  phone                       String?
+  role                        String
+  customRoleId                String?              @map("custom_role_id")
+  unitId                      String?              @map("unit_id")
+  status                      String               @default("pending")
+  canLogin                    Boolean              @default(true) @map("can_login")
+  avatar                      String?
+  lastSeenAt                  DateTime?            @map("last_seen_at")
+  currentPage                 String?              @map("current_page")
+  lastAction                  String?              @map("last_action")
+  isActive                    Boolean              @default(true) @map("is_active")
+  nearCommission              Decimal              @default(0) @map("near_commission") @db.Decimal(15, 2)
+  farCommission               Decimal              @default(0) @map("far_commission") @db.Decimal(15, 2)
+  createdAt                   DateTime             @default(now()) @map("created_at")
+  updatedAt                   DateTime             @updatedAt @map("updated_at")
+  cashbackProcessedBy         CashbackWithdrawal[] @relation("CashbackProcessedBy")
+  debtPayments                CompanyDebtPayment[] @relation("DebtPaymentPaidBy")
+  createdDebts                CompanyDebt[]        @relation("DebtCreator")
+  courierCash                 CourierCash[]
+  createdCustomRoles          CustomRole[]         @relation("CustomRoleCreator")
+  customerFollowUps           CustomerFollowUp[]   @relation("FollowUpCreator")
+  priceApprovedBy             CustomerPrice[]      @relation("PriceApprovedBy")
+  assignedCustomers           Customer[]           @relation("CustomerSales")
+  financeApprovedBy           FinanceRequest[]     @relation("FinanceApprovedBy")
+  financeProcessedBy          FinanceRequest[]     @relation("FinanceProcessedBy")
+  financeRequestBy            FinanceRequest[]     @relation("FinanceRequestBy")
+  transferProcessedBy         FundTransfer[]       @relation("TransferProcessedBy")
+  logUser                     Log[]                @relation("LogUser")
+  payments                    Payment[]
   receivableFollowUpCreatedBy ReceivableFollowUp[] @relation("ReceivableFollowUpCreator")
-  salaryApprovedBy  SalaryPayment[] @relation("SalaryApprovedBy")
-  priceApprovedBy   CustomerPrice[] @relation("PriceApprovedBy")
-  logUser           Log[] @relation("LogUser")
-  financeRequestBy  FinanceRequest[] @relation("FinanceRequestBy")
-  financeApprovedBy FinanceRequest[] @relation("FinanceApprovedBy")
-  financeProcessedBy FinanceRequest[] @relation("FinanceProcessedBy")
-  transferProcessedBy FundTransfer[] @relation("TransferProcessedBy")
-  cashbackProcessedBy CashbackWithdrawal[] @relation("CashbackProcessedBy")
-  
+  assignedReceivables         Receivable[]         @relation("AssignedReceivable")
+  receivableCreatedBy         Receivable[]         @relation("ReceivableCreator")
+  salaryApprovedBy            SalaryPayment[]      @relation("SalaryApprovedBy")
+  salaryPayments              SalaryPayment[]
+  salesTargets                SalesTarget[]
+  taskReports                 SalesTaskReport[]    @relation("TaskReportedBy")
+  createdTasks                SalesTask[]          @relation("TaskAssignedBy")
+  assignedTasks               SalesTask[]          @relation("TaskAssignedTo")
+  assignedDeliveries          Transaction[]        @relation("AssignedCourier")
+  transactions                Transaction[]        @relation("TransactionCreator")
+  userUnits                   UserUnit[]
+  customRole                  CustomRole?          @relation(fields: [customRoleId], references: [id])
+  unit                        Unit?                @relation(fields: [unitId], references: [id])
+
   @@index([role])
   @@index([customRoleId])
   @@index([unitId])
@@ -112,12 +97,12 @@ model User {
 }
 
 model PasswordReset {
-  id         String   @id @default(cuid())
-  identifier String   // bisa berisi email atau nomor telepon
-  code       String   // 6-digit recovery code
-  expiresAt  DateTime @map("expires_at") // code valid for 15 minutes
+  id         String    @id @default(cuid())
+  identifier String
+  code       String
+  expiresAt  DateTime  @map("expires_at")
   usedAt     DateTime? @map("used_at")
-  createdAt  DateTime @default(now()) @map("created_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
 
   @@index([identifier])
   @@index([code])
@@ -126,31 +111,30 @@ model PasswordReset {
 }
 
 model Product {
-  id                  String   @id @default(cuid())
+  id                  String            @id @default(cuid())
   name                String
-  sku                 String?  @unique
+  sku                 String?           @unique
   description         String?
   category            String?
-  unit                String?  // kg, pcs, box (main unit)
-  subUnit             String?  // pack, pcs, etc (sub unit within main unit)
-  conversionRate      Decimal  @default(1) @db.Decimal(15,2)  // how many subUnits per 1 main unit (e.g., 10 means 1 box = 10 pack)
-  globalStock         Decimal  @default(0) @db.Decimal(15,3) @map("global_stock") // stored in smallest unit (subUnit)
-  avgHpp              Decimal  @default(0) @db.Decimal(15,2) @map("avg_hpp") // Cost price (HPP) per subUnit
-  sellingPrice        Decimal  @default(0) @db.Decimal(15,2) @map("selling_price") // Selling price per main unit
-  purchasePrice       Decimal  @default(0) @db.Decimal(15,2) @map("purchase_price") // Last known purchase price per sub-unit (fallback for HPP when track_stock=OFF)
-  sellPricePerSubUnit Decimal  @default(0) @db.Decimal(15,2) @map("sell_price_per_sub_unit") // Selling price per sub unit (optional, 0 = use conversion)
-  minStock            Decimal  @default(0) @db.Decimal(15,3) @map("min_stock") // Minimum stock in subUnits
-  stockType           String   @default("centralized") @map("stock_type") // centralized = shared all units, per_unit = tracked per unit
-  imageUrl            String?  @map("image_url") // product photo URL
-  trackStock          Boolean  @default(true) @map("track_stock") // whether stock is tracked for this product
-  isActive            Boolean  @default(true) @map("is_active")
-  createdAt           DateTime @default(now()) @map("created_at")
-  updatedAt           DateTime @updatedAt @map("updated_at")
-  
-  unitProducts UnitProduct[]
-  transactionItems TransactionItem[]
-  dealPrices   CustomerPrice[]
-  
+  unit                String?
+  subUnit             String?
+  conversionRate      Decimal           @default(1) @db.Decimal(15, 2)
+  globalStock         Decimal           @default(0) @map("global_stock") @db.Decimal(15, 3)
+  avgHpp              Decimal           @default(0) @map("avg_hpp") @db.Decimal(15, 2)
+  sellingPrice        Decimal           @default(0) @map("selling_price") @db.Decimal(15, 2)
+  purchasePrice       Decimal           @default(0) @map("purchase_price") @db.Decimal(15, 2)
+  sellPricePerSubUnit Decimal           @default(0) @map("sell_price_per_sub_unit") @db.Decimal(15, 2)
+  minStock            Decimal           @default(0) @map("min_stock") @db.Decimal(15, 3)
+  stockType           String            @default("centralized") @map("stock_type")
+  imageUrl            String?           @map("image_url")
+  trackStock          Boolean           @default(true) @map("track_stock")
+  isActive            Boolean           @default(true) @map("is_active")
+  createdAt           DateTime          @default(now()) @map("created_at")
+  updatedAt           DateTime          @updatedAt @map("updated_at")
+  dealPrices          CustomerPrice[]
+  transactionItems    TransactionItem[]
+  unitProducts        UnitProduct[]
+
   @@index([category])
   @@index([trackStock, isActive])
   @@index([isActive, stockType])
@@ -161,49 +145,47 @@ model UnitProduct {
   id        String   @id @default(cuid())
   unitId    String   @map("unit_id")
   productId String   @map("product_id")
-  stock     Decimal  @default(0) @db.Decimal(15,3)
+  stock     Decimal  @default(0) @db.Decimal(15, 3)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
-  
-  unit      Unit     @relation(fields: [unitId], references: [id])
   product   Product  @relation(fields: [productId], references: [id])
-  
+  unit      Unit     @relation(fields: [unitId], references: [id])
+
   @@unique([unitId, productId])
   @@map("unit_products")
 }
 
 model Customer {
-  id                  String   @id @default(cuid())
+  id                  String               @id @default(cuid())
   name                String
-  code                String?  @unique  // Customer code for PWA access
+  code                String?              @unique
   phone               String?
   email               String?
   address             String?
-  unitId              String   @map("unit_id")
+  unitId              String               @map("unit_id")
   notes               String?
-  distance            String   @default("near") // near = dekat, far = jauh
-  totalOrders         Int      @default(0) @map("total_orders")
-  totalSpent          Decimal  @default(0) @db.Decimal(15,2) @map("total_spent")
-  cashbackBalance     Decimal  @default(0) @db.Decimal(15,2) @map("cashback_balance") // Customer cashback balance
-  cashbackType        String   @default("percentage") @map("cashback_type") // Cashback type: percentage or fixed
-  cashbackValue       Decimal  @default(0) @db.Decimal(15,2) @map("cashback_value") // Cashback value: percentage (e.g., 5) or fixed amount (e.g., 10000)
-  status              String   @default("active") // active, lost, inactive
-  assignedToId        String?  @map("assigned_to_id") // Sales yang menangani pelanggan ini
-  lastTransactionDate DateTime? @map("last_transaction_date") // Tanggal transaksi terakhir
-  lastFollowUpDate    DateTime? @map("last_follow_up_date") // Tanggal follow-up terakhir
-  lostAt              DateTime? @map("lost_at") // Tanggal ditandai lost
-  lostReason          String?  @map("lost_reason") // Alasan lost
-  createdAt           DateTime @default(now()) @map("created_at")
-  updatedAt           DateTime @updatedAt @map("updated_at")
-  
-  unit                Unit     @relation(fields: [unitId], references: [id])
-  assignedTo          User?    @relation("CustomerSales", fields: [assignedToId], references: [id], onDelete: SetNull)
-  transactions        Transaction[]
-  followUps           CustomerFollowUp[]
-  dealPrices          CustomerPrice[]
+  distance            String               @default("near")
+  totalOrders         Int                  @default(0) @map("total_orders")
+  totalSpent          Decimal              @default(0) @map("total_spent") @db.Decimal(15, 2)
+  cashbackBalance     Decimal              @default(0) @map("cashback_balance") @db.Decimal(15, 2)
+  cashbackType        String               @default("percentage") @map("cashback_type")
+  cashbackValue       Decimal              @default(0) @map("cashback_value") @db.Decimal(15, 2)
+  status              String               @default("active")
+  assignedToId        String?              @map("assigned_to_id")
+  lastTransactionDate DateTime?            @map("last_transaction_date")
+  lastFollowUpDate    DateTime?            @map("last_follow_up_date")
+  lostAt              DateTime?            @map("lost_at")
+  lostReason          String?              @map("lost_reason")
+  createdAt           DateTime             @default(now()) @map("created_at")
+  updatedAt           DateTime             @updatedAt @map("updated_at")
   cashbackLogs        CashbackLog[]
   cashbackWithdrawals CashbackWithdrawal[]
-  
+  followUps           CustomerFollowUp[]
+  dealPrices          CustomerPrice[]
+  assignedTo          User?                @relation("CustomerSales", fields: [assignedToId], references: [id])
+  unit                Unit                 @relation(fields: [unitId], references: [id])
+  transactions        Transaction[]
+
   @@index([unitId])
   @@index([assignedToId])
   @@index([status])
@@ -216,67 +198,51 @@ model Customer {
   @@map("customers")
 }
 
-// ================================
-// USER-UNIT MANY-TO-MANY
-// ================================
-
 model UserUnit {
   id        String   @id @default(cuid())
   userId    String   @map("user_id")
   unitId    String   @map("unit_id")
   createdAt DateTime @default(now()) @map("created_at")
-  
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   unit      Unit     @relation(fields: [unitId], references: [id], onDelete: Cascade)
-  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@unique([userId, unitId])
   @@index([userId])
   @@index([unitId])
   @@map("user_units")
 }
 
-// ================================
-// PAYMENT PROOFS
-// ================================
-
 model PaymentProof {
-  id            String   @id @default(cuid())
-  transactionId String   @map("transaction_id")
-  invoiceNo     String?  @map("invoice_no")
-  fileUrl       String   @map("file_url")
-  fileName      String?  @map("file_name")
-  fileSize      Int?     @map("file_size")
-  fileType      String?  @map("file_type")
-  customerName  String?  @map("customer_name")
+  id            String      @id @default(cuid())
+  transactionId String      @map("transaction_id")
+  invoiceNo     String?     @map("invoice_no")
+  fileUrl       String      @map("file_url")
+  fileName      String?     @map("file_name")
+  fileSize      Int?        @map("file_size")
+  fileType      String?     @map("file_type")
+  customerName  String?     @map("customer_name")
   notes         String?
-  uploadedAt    DateTime @default(now()) @map("uploaded_at")
-  viewed        Boolean  @default(false)
-  createdAt     DateTime @default(now()) @map("created_at")
-  
+  uploadedAt    DateTime    @default(now()) @map("uploaded_at")
+  viewed        Boolean     @default(false)
+  createdAt     DateTime    @default(now()) @map("created_at")
   transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
-  
+
   @@index([transactionId])
   @@index([uploadedAt])
   @@map("payment_proofs")
 }
 
-// ================================
-// CUSTOMER FOLLOW-UP HISTORY
-// ================================
-
 model CustomerFollowUp {
   id               String    @id @default(cuid())
   customerId       String    @map("customer_id")
-  type             String    // call, whatsapp, visit, email, other
+  type             String
   note             String
-  outcome          String?   // interested, not_interested, promised_to_order, no_response, rescheduled, other
+  outcome          String?
   nextFollowUpDate DateTime? @map("next_follow_up_date")
-  createdById      String    @map("created_by_id") // Sales/Superadmin yang melakukan follow-up
-  
+  createdById      String    @map("created_by_id")
   createdAt        DateTime  @default(now()) @map("created_at")
-
-  customer         Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
   createdBy        User      @relation("FollowUpCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  customer         Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
   @@index([customerId])
   @@index([createdById])
@@ -285,96 +251,71 @@ model CustomerFollowUp {
 }
 
 model Supplier {
-  id            String   @id @default(cuid())
-  name          String
-  phone         String?
-  email         String?
-  address       String?
-  bankName      String?  @map("bank_name")
-  bankAccount   String?  @map("bank_account")
-  notes         String?
-  totalPurchase Decimal  @default(0) @db.Decimal(15,2) @map("total_purchase")
-  totalPaid     Decimal  @default(0) @db.Decimal(15,2) @map("total_paid")
-  isActive      Boolean  @default(true) @map("is_active")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
-  
-  purchases       Transaction[]
+  id              String           @id @default(cuid())
+  name            String
+  phone           String?
+  email           String?
+  address         String?
+  bankName        String?          @map("bank_name")
+  bankAccount     String?          @map("bank_account")
+  notes           String?
+  totalPurchase   Decimal          @default(0) @map("total_purchase") @db.Decimal(15, 2)
+  totalPaid       Decimal          @default(0) @map("total_paid") @db.Decimal(15, 2)
+  isActive        Boolean          @default(true) @map("is_active")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
   financeRequests FinanceRequest[]
-  
+  purchases       Transaction[]
+
   @@index([name])
   @@index([isActive])
   @@map("suppliers")
 }
 
-// ================================
-// TRANSACTION SYSTEM
-// ================================
-
 model Transaction {
-  id               String    @id @default(cuid())
-  type             String    // sale, purchase, expense, salary
-  invoiceNo        String    @unique @map("invoice_no")
-  unitId           String    @map("unit_id")
-  createdById      String    @map("created_by_id")
-  customerId       String?   @map("customer_id")
-  supplierId       String?   @map("supplier_id")
-  courierId        String?   @map("courier_id")
-  
-  // Amounts
-  total            Decimal   @default(0) @db.Decimal(15,2)
-  paidAmount       Decimal   @default(0) @db.Decimal(15,2) @map("paid_amount")
-  remainingAmount  Decimal   @default(0) @db.Decimal(15,2) @map("remaining_amount")
-  
-  // HPP & Profit
-  totalHpp         Decimal   @default(0) @db.Decimal(15,2) @map("total_hpp")
-  totalProfit      Decimal   @default(0) @db.Decimal(15,2) @map("total_profit")
-  
-  // Financial Snapshot
-  hppPaid          Decimal   @default(0) @db.Decimal(15,2) @map("hpp_paid")
-  profitPaid       Decimal   @default(0) @db.Decimal(15,2) @map("profit_paid")
-  hppUnpaid        Decimal   @default(0) @db.Decimal(15,2) @map("hpp_unpaid")
-  profitUnpaid     Decimal   @default(0) @db.Decimal(15,2) @map("profit_unpaid")
-  
-  // Payment Info
-  paymentMethod    String?   @map("payment_method") // cash, piutang, tempo
-  
-  // Status & Dates
-  status           String    @default("approved") // auto-approved
-  paymentStatus    String    @default("unpaid") @map("payment_status") // unpaid, partial, paid
-  dueDate          DateTime? @map("due_date")
-  deliveredAt      DateTime? @map("delivered_at")
-  
-  // Courier Commission
-  courierCommission Decimal  @default(0) @db.Decimal(15,2) @map("courier_commission") // calculated commission for this delivery
-  deliveryDistance  String?   @map("delivery_distance") // near or far, from customer
-  
-  // Optimistic concurrency
-  version          Int       @default(1)
-
-  // Notes
-  notes            String?
-  deliveryAddress  String?   @map("delivery_address")
-  
-  // Timestamps
-  transactionDate  DateTime  @default(now()) @map("transaction_date")
-  createdAt        DateTime  @default(now()) @map("created_at")
-  updatedAt        DateTime  @updatedAt @map("updated_at")
-  
-  // Relations
-  unit              Unit     @relation(fields: [unitId], references: [id])
-  createdBy         User     @relation("TransactionCreator", fields: [createdById], references: [id])
-  courier           User?    @relation("AssignedCourier", fields: [courierId], references: [id], onDelete: SetNull)
-  customer          Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  supplier          Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
-  items             TransactionItem[]
-  payments          Payment[]
-  paymentProofs     PaymentProof[]
-  financeRequests   FinanceRequest[]
-  receivable        Receivable?
+  id                String            @id @default(cuid())
+  type              String
+  invoiceNo         String            @unique @map("invoice_no")
+  unitId            String            @map("unit_id")
+  createdById       String            @map("created_by_id")
+  customerId        String?           @map("customer_id")
+  supplierId        String?           @map("supplier_id")
+  courierId         String?           @map("courier_id")
+  total             Decimal           @default(0) @db.Decimal(15, 2)
+  paidAmount        Decimal           @default(0) @map("paid_amount") @db.Decimal(15, 2)
+  remainingAmount   Decimal           @default(0) @map("remaining_amount") @db.Decimal(15, 2)
+  totalHpp          Decimal           @default(0) @map("total_hpp") @db.Decimal(15, 2)
+  totalProfit       Decimal           @default(0) @map("total_profit") @db.Decimal(15, 2)
+  hppPaid           Decimal           @default(0) @map("hpp_paid") @db.Decimal(15, 2)
+  profitPaid        Decimal           @default(0) @map("profit_paid") @db.Decimal(15, 2)
+  hppUnpaid         Decimal           @default(0) @map("hpp_unpaid") @db.Decimal(15, 2)
+  profitUnpaid      Decimal           @default(0) @map("profit_unpaid") @db.Decimal(15, 2)
+  paymentMethod     String?           @map("payment_method")
+  status            String            @default("approved")
+  paymentStatus     String            @default("unpaid") @map("payment_status")
+  dueDate           DateTime?         @map("due_date")
+  deliveredAt       DateTime?         @map("delivered_at")
+  courierCommission Decimal           @default(0) @map("courier_commission") @db.Decimal(15, 2)
+  deliveryDistance  String?           @map("delivery_distance")
+  version           Int               @default(1)
+  notes             String?
+  transactionDate   DateTime          @default(now()) @map("transaction_date")
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+  deliveryAddress   String?           @map("delivery_address")
   cashbackLogs      CashbackLog[]
   customerPrices    CustomerPrice[]
-  
+  financeRequests   FinanceRequest[]
+  paymentProofs     PaymentProof[]
+  payments          Payment[]
+  receivable        Receivable?
+  items             TransactionItem[]
+  courier           User?             @relation("AssignedCourier", fields: [courierId], references: [id])
+  createdBy         User              @relation("TransactionCreator", fields: [createdById], references: [id])
+  customer          Customer?         @relation(fields: [customerId], references: [id])
+  supplier          Supplier?         @relation(fields: [supplierId], references: [id])
+  unit              Unit              @relation(fields: [unitId], references: [id])
+
   @@index([transactionDate])
   @@index([unitId])
   @@index([createdById])
@@ -396,21 +337,20 @@ model Transaction {
 }
 
 model TransactionItem {
-  id           String   @id @default(cuid())
-  transactionId String  @map("transaction_id")
-  productId     String  @map("product_id")
-  productName   String  @map("product_name")
-  qty          Decimal @db.Decimal(15,3)
-  qtyInSubUnit Decimal  @default(0) @db.Decimal(15,3) @map("qty_in_sub_unit") // qty converted to subUnits for stock deduction
-  qtyUnitType  String   @default("sub") @map("qty_unit_type") // "main" or "sub" - which unit was used
-  price        Decimal @db.Decimal(15,2) // Selling price
-  hpp          Decimal @db.Decimal(15,2) // Cost price at transaction time
-  subtotal     Decimal @db.Decimal(15,2)
-  profit       Decimal @db.Decimal(15,2)
-  
+  id            String      @id @default(cuid())
+  transactionId String      @map("transaction_id")
+  productId     String      @map("product_id")
+  productName   String      @map("product_name")
+  qty           Decimal     @db.Decimal(15, 3)
+  qtyInSubUnit  Decimal     @default(0) @map("qty_in_sub_unit") @db.Decimal(15, 3)
+  qtyUnitType   String      @default("sub") @map("qty_unit_type")
+  price         Decimal     @db.Decimal(15, 2)
+  hpp           Decimal     @db.Decimal(15, 2)
+  subtotal      Decimal     @db.Decimal(15, 2)
+  profit        Decimal     @db.Decimal(15, 2)
+  product       Product     @relation(fields: [productId], references: [id])
   transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
-  product       Product    @relation(fields: [productId], references: [id])
-  
+
   @@index([transactionId])
   @@index([productId])
   @@index([transactionId, productId])
@@ -418,28 +358,27 @@ model TransactionItem {
 }
 
 model Payment {
-  id            String   @id @default(cuid())
-  transactionId String   @map("transaction_id")
-  receivedById  String   @map("received_by_id")
-  amount        Decimal @db.Decimal(15,2)
-  paymentMethod String   // cash, transfer, giro
-  cashBoxId     String?  @map("cash_box_id")
-  bankAccountId String?  @map("bank_account_id")
-  bankName      String?  @map("bank_name")
-  accountNo     String?  @map("account_no")
-  referenceNo   String?  @map("reference_no")
+  id            String       @id @default(cuid())
+  transactionId String       @map("transaction_id")
+  receivedById  String       @map("received_by_id")
+  amount        Decimal      @db.Decimal(15, 2)
+  paymentMethod String
+  cashBoxId     String?      @map("cash_box_id")
+  bankAccountId String?      @map("bank_account_id")
+  bankName      String?      @map("bank_name")
+  accountNo     String?      @map("account_no")
+  referenceNo   String?      @map("reference_no")
   notes         String?
-  hppPortion    Decimal  @default(0) @db.Decimal(15,2) @map("hpp_portion")
-  profitPortion Decimal  @default(0) @db.Decimal(15,2) @map("profit_portion")
-  version       Int      @default(1)
-  paidAt        DateTime @default(now()) @map("paid_at")
-  createdAt     DateTime @default(now()) @map("created_at")
-  
-  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
-  receivedBy    User       @relation(fields: [receivedById], references: [id])
-  cashBox       CashBox?   @relation(fields: [cashBoxId], references: [id], onDelete: SetNull)
-  bankAccount   BankAccount? @relation(fields: [bankAccountId], references: [id], onDelete: SetNull)
-  
+  hppPortion    Decimal      @default(0) @map("hpp_portion") @db.Decimal(15, 2)
+  profitPortion Decimal      @default(0) @map("profit_portion") @db.Decimal(15, 2)
+  version       Int          @default(1)
+  paidAt        DateTime     @default(now()) @map("paid_at")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  bankAccount   BankAccount? @relation(fields: [bankAccountId], references: [id])
+  cashBox       CashBox?     @relation(fields: [cashBoxId], references: [id])
+  receivedBy    User         @relation(fields: [receivedById], references: [id])
+  transaction   Transaction  @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
   @@index([transactionId])
   @@index([cashBoxId])
   @@index([bankAccountId])
@@ -452,196 +391,150 @@ model Payment {
   @@map("payments")
 }
 
-// ================================
-// SALARY & PAYROLL
-// ================================
-
 model SalaryPayment {
-  id                 String   @id @default(cuid())
-  userId             String   @map("user_id")
-  periodStart        DateTime @map("period_start")
-  periodEnd          DateTime @map("period_end")
-  baseSalary         Decimal  @default(0) @db.Decimal(15,2) @map("base_salary")
-  
-  // Salary components (JSON)
-  // Penambah: transportAllowance, mealAllowance, overtimePay, incentive, otherAllowance
-  // Pengurang: bpjsTk, bpjsKs, pph21, loanDeduction, absenceDeduction, lateDeduction, otherDeduction
-  transportAllowance Decimal @default(0) @db.Decimal(15,2) @map("transport_allowance")
-  mealAllowance      Decimal @default(0) @db.Decimal(15,2) @map("meal_allowance")
-  overtimePay        Decimal @default(0) @db.Decimal(15,2) @map("overtime_pay")
-  incentive          Decimal @default(0) @db.Decimal(15,2)
-  otherAllowance     Decimal @default(0) @db.Decimal(15,2) @map("other_allowance")
-  bonus              Decimal @default(0) @db.Decimal(15,2)
-  
-  bpjsTk             Decimal @default(0) @db.Decimal(15,2) @map("bpjs_tk")
-  bpjsKs             Decimal @default(0) @db.Decimal(15,2) @map("bpjs_ks")
-  pph21              Decimal @default(0) @db.Decimal(15,2)
-  loanDeduction      Decimal @default(0) @db.Decimal(15,2) @map("loan_deduction")
-  absenceDeduction   Decimal @default(0) @db.Decimal(15,2) @map("absence_deduction")
-  lateDeduction      Decimal @default(0) @db.Decimal(15,2) @map("late_deduction")
-  otherDeduction     Decimal @default(0) @db.Decimal(15,2) @map("other_deduction")
-  deduction          Decimal @default(0) @db.Decimal(15,2)
-  
-  totalAllowance     Decimal  @default(0) @db.Decimal(15,2) @map("total_allowance")
-  totalDeduction     Decimal  @default(0) @db.Decimal(15,2) @map("total_deduction")
-  totalAmount        Decimal  @default(0) @db.Decimal(15,2) @map("total_amount")
-  
-  // Source of funds
-  sourceType         String   @default("cash") @map("source_type") // hpp_hand, profit_hand, cash, bank, cashbox
-  sourceUnitId       String?  @map("source_unit_id")
-  bankAccountId      String?  @map("bank_account_id") // Which bank account to pay from
-  cashBoxId          String?  @map("cash_box_id") // Which cash box to pay from
-  
-  // Finance request link
-  financeRequestId   String?  @unique @map("finance_request_id")
-  
-  version            Int      @default(1)
-  status             String   @default("pending") // pending, approved, paid, rejected
-  approvedById       String?  @map("approved_by_id")
-  approvedAt         DateTime? @map("approved_at")
-  paidAt             DateTime? @map("paid_at")
-  
+  id                 String          @id @default(cuid())
+  userId             String          @map("user_id")
+  periodStart        DateTime        @map("period_start")
+  periodEnd          DateTime        @map("period_end")
+  baseSalary         Decimal         @default(0) @map("base_salary") @db.Decimal(15, 2)
+  transportAllowance Decimal         @default(0) @map("transport_allowance") @db.Decimal(15, 2)
+  mealAllowance      Decimal         @default(0) @map("meal_allowance") @db.Decimal(15, 2)
+  overtimePay        Decimal         @default(0) @map("overtime_pay") @db.Decimal(15, 2)
+  incentive          Decimal         @default(0) @db.Decimal(15, 2)
+  otherAllowance     Decimal         @default(0) @map("other_allowance") @db.Decimal(15, 2)
+  bonus              Decimal         @default(0) @db.Decimal(15, 2)
+  bpjsTk             Decimal         @default(0) @map("bpjs_tk") @db.Decimal(15, 2)
+  bpjsKs             Decimal         @default(0) @map("bpjs_ks") @db.Decimal(15, 2)
+  pph21              Decimal         @default(0) @db.Decimal(15, 2)
+  loanDeduction      Decimal         @default(0) @map("loan_deduction") @db.Decimal(15, 2)
+  absenceDeduction   Decimal         @default(0) @map("absence_deduction") @db.Decimal(15, 2)
+  lateDeduction      Decimal         @default(0) @map("late_deduction") @db.Decimal(15, 2)
+  otherDeduction     Decimal         @default(0) @map("other_deduction") @db.Decimal(15, 2)
+  deduction          Decimal         @default(0) @db.Decimal(15, 2)
+  totalAllowance     Decimal         @default(0) @map("total_allowance") @db.Decimal(15, 2)
+  totalDeduction     Decimal         @default(0) @map("total_deduction") @db.Decimal(15, 2)
+  totalAmount        Decimal         @default(0) @map("total_amount") @db.Decimal(15, 2)
+  sourceType         String          @default("cash") @map("source_type")
+  sourceUnitId       String?         @map("source_unit_id")
+  bankAccountId      String?         @map("bank_account_id")
+  cashBoxId          String?         @map("cash_box_id")
+  financeRequestId   String?         @unique @map("finance_request_id")
+  version            Int             @default(1)
+  status             String          @default("pending")
+  approvedById       String?         @map("approved_by_id")
+  approvedAt         DateTime?       @map("approved_at")
+  paidAt             DateTime?       @map("paid_at")
   notes              String?
-  
-  createdAt          DateTime @default(now()) @map("created_at")
-  updatedAt          DateTime @updatedAt @map("updated_at")
-  
-  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  sourceUnit    Unit?           @relation("SalarySourceUnit", fields: [sourceUnitId], references: [id], onDelete: SetNull)
-  bankAccount   BankAccount?    @relation("SalaryBankAccount", fields: [bankAccountId], references: [id], onDelete: SetNull)
-  cashBox       CashBox?        @relation("SalaryCashBox", fields: [cashBoxId], references: [id], onDelete: SetNull)
-  approvedBy    User?           @relation("SalaryApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
-  financeRequest FinanceRequest? @relation("SalaryFinanceRequest", fields: [financeRequestId], references: [id])
-  
+  createdAt          DateTime        @default(now()) @map("created_at")
+  updatedAt          DateTime        @updatedAt @map("updated_at")
+  approvedBy         User?           @relation("SalaryApprovedBy", fields: [approvedById], references: [id])
+  bankAccount        BankAccount?    @relation("SalaryBankAccount", fields: [bankAccountId], references: [id])
+  cashBox            CashBox?        @relation("SalaryCashBox", fields: [cashBoxId], references: [id])
+  financeRequest     FinanceRequest? @relation("SalaryFinanceRequest", fields: [financeRequestId], references: [id])
+  sourceUnit         Unit?           @relation("SalarySourceUnit", fields: [sourceUnitId], references: [id])
+  user               User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, periodStart, periodEnd])
   @@index([userId])
   @@index([status])
   @@index([periodStart, periodEnd])
-  @@unique([userId, periodStart, periodEnd])
   @@index([status, periodStart])
   @@map("salary_payments")
 }
 
-// ================================
-// FINANCE MANAGEMENT
-// ================================
-
 model BankAccount {
-  id            String   @id @default(cuid())
-  name          String   // e.g., "BCA Utama", "Mandiri Operasional"
-  bankName      String   @map("bank_name") // BCA, Mandiri, BRI, etc.
-  accountNo     String   @map("account_no")
-  accountHolder String   @map("account_holder")
-  branch        String?
-  balance       Decimal  @default(0) @db.Decimal(15,2)
-  isActive      Boolean  @default(true) @map("is_active")
-  version       Int      @default(1)
-  notes         String?
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
-  
-  fundTransfersFrom FundTransfer[] @relation("TransferFrom")
-  fundTransfersTo   FundTransfer[] @relation("TransferTo")
-  financeRequests   FinanceRequest[]
-  payments          Payment[]
-  salaryPayments    SalaryPayment[] @relation("SalaryBankAccount")
-  debtPayments      CompanyDebtPayment[] @relation("DebtPaymentBankAccount")
-  cashbackWithdrawals CashbackWithdrawal[] @relation("CashbackWithdrawalBankAccount")
-  financeToBankAccount FinanceRequest[] @relation("FinanceToBankAccount")
-  
+  id                   String               @id @default(cuid())
+  name                 String
+  bankName             String               @map("bank_name")
+  accountNo            String               @map("account_no")
+  accountHolder        String               @map("account_holder")
+  branch               String?
+  balance              Decimal              @default(0) @db.Decimal(15, 2)
+  isActive             Boolean              @default(true) @map("is_active")
+  version              Int                  @default(1)
+  notes                String?
+  createdAt            DateTime             @default(now()) @map("created_at")
+  updatedAt            DateTime             @updatedAt @map("updated_at")
+  cashbackWithdrawals  CashbackWithdrawal[] @relation("CashbackWithdrawalBankAccount")
+  debtPayments         CompanyDebtPayment[] @relation("DebtPaymentBankAccount")
+  financeRequests      FinanceRequest[]
+  financeToBankAccount FinanceRequest[]     @relation("FinanceToBankAccount")
+  fundTransfersFrom    FundTransfer[]       @relation("TransferFrom")
+  fundTransfersTo      FundTransfer[]       @relation("TransferTo")
+  payments             Payment[]
+  salaryPayments       SalaryPayment[]      @relation("SalaryBankAccount")
+
   @@index([isActive])
   @@map("bank_accounts")
 }
 
 model CashBox {
-  id        String   @id @default(cuid())
-  name      String   // e.g., "Brankas Kantor", "Kas Kecil"
-  unitId    String?  @map("unit_id")
-  balance   Decimal  @default(0) @db.Decimal(15,2)
-  isActive  Boolean  @default(true) @map("is_active")
-  version   Int      @default(1)
-  notes     String?
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-  
-  unit        Unit?    @relation(fields: [unitId], references: [id], onDelete: SetNull)
-  
-  fundTransfersFrom FundTransfer[] @relation("TransferFromCash")
-  fundTransfersTo   FundTransfer[] @relation("TransferToCash")
-  financeRequests   FinanceRequest[]
-  payments          Payment[]
-  salaryPayments    SalaryPayment[] @relation("SalaryCashBox")
-  debtPayments      CompanyDebtPayment[] @relation("DebtPaymentCashBox")
+  id                  String               @id @default(cuid())
+  name                String
+  unitId              String?              @map("unit_id")
+  balance             Decimal              @default(0) @db.Decimal(15, 2)
+  isActive            Boolean              @default(true) @map("is_active")
+  version             Int                  @default(1)
+  notes               String?
+  createdAt           DateTime             @default(now()) @map("created_at")
+  updatedAt           DateTime             @updatedAt @map("updated_at")
+  unit                Unit?                @relation(fields: [unitId], references: [id])
   cashbackWithdrawals CashbackWithdrawal[] @relation("CashbackWithdrawalCashBox")
-  financeFromCashBox FinanceRequest[] @relation("FinanceFromCashBox")
-  
+  debtPayments        CompanyDebtPayment[] @relation("DebtPaymentCashBox")
+  financeRequests     FinanceRequest[]
+  financeFromCashBox  FinanceRequest[]     @relation("FinanceFromCashBox")
+  fundTransfersFrom   FundTransfer[]       @relation("TransferFromCash")
+  fundTransfersTo     FundTransfer[]       @relation("TransferToCash")
+  payments            Payment[]
+  salaryPayments      SalaryPayment[]      @relation("SalaryCashBox")
+
   @@index([unitId, isActive])
   @@index([unitId])
   @@map("cash_boxes")
 }
 
 model FinanceRequest {
-  id              String    @id @default(cuid())
-  type            String    // purchase, salary, expense, courier_deposit, cash_to_bank
-  requestById     String    @map("request_by_id") // Who made the request
-  unitId          String?   @map("unit_id")
-  
-  // Amount details
-  amount          Decimal   @db.Decimal(15,2)
-  description     String
-  
-  // For purchase requests
-  supplierId      String?   @map("supplier_id")
-  purchaseItems   String?   @map("purchase_items") // JSON array of items
-  
-  // For courier deposits
-  transactionId   String?   @map("transaction_id") // Related transaction
-  courierId       String?   @map("courier_id")
-  
-  // Goods status for purchase requests
-  goodsStatus     String    @default("pending") @map("goods_status") // pending, received, partial
-  
-  // Approval workflow
-  status          String    @default("pending") // pending, approved, rejected, processed
-  approvedById    String?   @map("approved_by_id")
-  approvedAt      DateTime? @map("approved_at")
-  
-  // Processing details
-  processedById   String?   @map("processed_by_id")
-  processedAt     DateTime? @map("processed_at")
-  
-  // Source of funds (selected by Finance)
-  sourceType      String?   @map("source_type") // hpp_hand, profit_hand, bank, cashbox
-  fundSource      String?   @map("fund_source") // hpp_paid, profit_paid — Step 1: which pool the money comes from
-  sourceAccountId String?   @map("source_account_id") // Bank account ID or CashBox ID
-  bankAccountId   String?   @map("bank_account_id") // Specific bank account for payment
-  cashBoxId       String?   @map("cash_box_id") // Specific cashbox for payment
-  
-  // Payment type (debt or pay_now)
-  paymentType     String?   @map("payment_type") // debt, pay_now
-  
-  // Transfer details (for cash_to_bank)
-  fromCashBoxId   String?   @map("from_cash_box_id")
-  toBankAccountId String?   @map("to_bank_account_id")
-  
-  notes           String?
-  rejectionReason String?   @map("rejection_reason")
-  
-  version         Int       @default(1)
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
-  
-  supplier        Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
-  transaction     Transaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
-  bankAccount     BankAccount? @relation(fields: [bankAccountId], references: [id], onDelete: SetNull)
-  salaryPayment   SalaryPayment? @relation("SalaryFinanceRequest")
-  cashBox         CashBox? @relation(fields: [cashBoxId], references: [id], onDelete: SetNull)
-  courierHandovers CourierHandover[]
-  requestBy       User     @relation("FinanceRequestBy", fields: [requestById], references: [id])
-  approvedBy      User?    @relation("FinanceApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
-  processedBy     User?    @relation("FinanceProcessedBy", fields: [processedById], references: [id], onDelete: SetNull)
-  fromCashBox     CashBox? @relation("FinanceFromCashBox", fields: [fromCashBoxId], references: [id], onDelete: SetNull)
-  toBankAccount   BankAccount? @relation("FinanceToBankAccount", fields: [toBankAccountId], references: [id], onDelete: SetNull)
-  
+  id               String           @id @default(cuid())
+  type             String
+  requestById      String           @map("request_by_id")
+  unitId           String?          @map("unit_id")
+  amount           Decimal          @db.Decimal(15, 2)
+  description      String
+  supplierId       String?          @map("supplier_id")
+  purchaseItems    String?          @map("purchase_items")
+  transactionId    String?          @map("transaction_id")
+  courierId        String?          @map("courier_id")
+  goodsStatus      String           @default("pending") @map("goods_status")
+  status           String           @default("pending")
+  approvedById     String?          @map("approved_by_id")
+  approvedAt       DateTime?        @map("approved_at")
+  processedById    String?          @map("processed_by_id")
+  processedAt      DateTime?        @map("processed_at")
+  sourceType       String?          @map("source_type")
+  fundSource       String?          @map("fund_source")
+  sourceAccountId  String?          @map("source_account_id")
+  bankAccountId    String?          @map("bank_account_id")
+  cashBoxId        String?          @map("cash_box_id")
+  paymentType      String?          @map("payment_type")
+  fromCashBoxId    String?          @map("from_cash_box_id")
+  toBankAccountId  String?          @map("to_bank_account_id")
+  notes            String?
+  rejectionReason  String?          @map("rejection_reason")
+  version          Int              @default(1)
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
+  courierHandovers CourierHandover?
+  approvedBy       User?            @relation("FinanceApprovedBy", fields: [approvedById], references: [id])
+  bankAccount      BankAccount?     @relation(fields: [bankAccountId], references: [id])
+  cashBox          CashBox?         @relation(fields: [cashBoxId], references: [id])
+  fromCashBox      CashBox?         @relation("FinanceFromCashBox", fields: [fromCashBoxId], references: [id])
+  processedBy      User?            @relation("FinanceProcessedBy", fields: [processedById], references: [id])
+  requestBy        User             @relation("FinanceRequestBy", fields: [requestById], references: [id])
+  supplier         Supplier?        @relation(fields: [supplierId], references: [id])
+  toBankAccount    BankAccount?     @relation("FinanceToBankAccount", fields: [toBankAccountId], references: [id])
+  transaction      Transaction?     @relation(fields: [transactionId], references: [id])
+  salaryPayment    SalaryPayment?   @relation("SalaryFinanceRequest")
+
   @@index([requestById])
   @@index([status])
   @@index([type])
@@ -654,31 +547,26 @@ model FinanceRequest {
 }
 
 model FundTransfer {
-  id               String   @id @default(cuid())
-  type             String   // cash_to_bank, bank_to_bank, bank_to_cash, cash_to_cash
-  
-  fromBankAccountId String?  @map("from_bank_account_id")
-  toBankAccountId   String?  @map("to_bank_account_id")
-  fromCashBoxId     String?  @map("from_cash_box_id")
-  toCashBoxId       String?  @map("to_cash_box_id")
-  
-  amount           Decimal @db.Decimal(15,2)
-  description      String?
-  referenceNo      String?  @map("reference_no")
-  
-  status           String   @default("pending") // pending, completed, cancelled
-  processedById    String?  @map("processed_by_id")
-  processedAt      DateTime? @map("processed_at")
-  
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
-  
-  fromBankAccount BankAccount? @relation("TransferFrom", fields: [fromBankAccountId], references: [id], onDelete: SetNull)
-  toBankAccount   BankAccount? @relation("TransferTo", fields: [toBankAccountId], references: [id], onDelete: SetNull)
-  fromCashBox     CashBox?    @relation("TransferFromCash", fields: [fromCashBoxId], references: [id], onDelete: SetNull)
-  toCashBox       CashBox?    @relation("TransferToCash", fields: [toCashBoxId], references: [id], onDelete: SetNull)
-  processedBy     User?       @relation("TransferProcessedBy", fields: [processedById], references: [id], onDelete: SetNull)
-  
+  id                String       @id @default(cuid())
+  type              String
+  fromBankAccountId String?      @map("from_bank_account_id")
+  toBankAccountId   String?      @map("to_bank_account_id")
+  fromCashBoxId     String?      @map("from_cash_box_id")
+  toCashBoxId       String?      @map("to_cash_box_id")
+  amount            Decimal      @db.Decimal(15, 2)
+  description       String?
+  referenceNo       String?      @map("reference_no")
+  status            String       @default("pending")
+  processedById     String?      @map("processed_by_id")
+  processedAt       DateTime?    @map("processed_at")
+  createdAt         DateTime     @default(now()) @map("created_at")
+  updatedAt         DateTime     @updatedAt @map("updated_at")
+  fromBankAccount   BankAccount? @relation("TransferFrom", fields: [fromBankAccountId], references: [id])
+  fromCashBox       CashBox?     @relation("TransferFromCash", fields: [fromCashBoxId], references: [id])
+  processedBy       User?        @relation("TransferProcessedBy", fields: [processedById], references: [id])
+  toBankAccount     BankAccount? @relation("TransferTo", fields: [toBankAccountId], references: [id])
+  toCashBox         CashBox?     @relation("TransferToCash", fields: [toCashBoxId], references: [id])
+
   @@index([status])
   @@index([type])
   @@index([createdAt])
@@ -686,34 +574,25 @@ model FundTransfer {
   @@map("fund_transfers")
 }
 
-// ================================
-// COMPANY DEBTS (HUTANG PERUSAHAAN)
-// ================================
-
 model CompanyDebt {
-  id              String    @id @default(cuid())
-  creditorName    String    @map("creditor_name") // Nama pihak yang berhutang (supplier, investor, dll)
-  debtType        String    @map("debt_type") // supplier, investor, other
+  id              String               @id @default(cuid())
+  creditorName    String               @map("creditor_name")
+  debtType        String               @map("debt_type")
   description     String?
-  totalAmount     Decimal   @db.Decimal(15,2) @map("total_amount") // Total hutang
-  paidAmount      Decimal   @default(0) @db.Decimal(15,2) @map("paid_amount") // Total sudah dibayar
-  remainingAmount Decimal   @db.Decimal(15,2) @map("remaining_amount") // Sisa hutang
-  
-  dueDate         DateTime? @map("due_date")
-  
-  status          String    @default("active") // active, paid, cancelled
-  isActive        Boolean   @default(true) @map("is_active")
-  
+  totalAmount     Decimal              @map("total_amount") @db.Decimal(15, 2)
+  paidAmount      Decimal              @default(0) @map("paid_amount") @db.Decimal(15, 2)
+  remainingAmount Decimal              @map("remaining_amount") @db.Decimal(15, 2)
+  dueDate         DateTime?            @map("due_date")
+  status          String               @default("active")
+  isActive        Boolean              @default(true) @map("is_active")
   notes           String?
-  createdById     String?   @map("created_by_id")
-  version         Int       @default(1)
-  
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
-  
-  createdBy       User?     @relation("DebtCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdById     String?              @map("created_by_id")
+  version         Int                  @default(1)
+  createdAt       DateTime             @default(now()) @map("created_at")
+  updatedAt       DateTime             @updatedAt @map("updated_at")
   payments        CompanyDebtPayment[]
-  
+  createdBy       User?                @relation("DebtCreator", fields: [createdById], references: [id])
+
   @@index([status])
   @@index([isActive])
   @@index([createdById])
@@ -723,26 +602,22 @@ model CompanyDebt {
 }
 
 model CompanyDebtPayment {
-  id             String    @id @default(cuid())
-  debtId         String    @map("debt_id")
-  amount         Decimal   @db.Decimal(15,2)
-  
-  // Payment source
-  paymentSource  String    @map("payment_source") // hpp_hand, profit_hand, bank, cashbox
-  bankAccountId  String?   @map("bank_account_id") // If paid from bank
-  cashBoxId      String?   @map("cash_box_id") // If paid from cashbox
-  
-  referenceNo    String?   @map("reference_no")
-  notes          String?
-  paidById       String?   @map("paid_by_id") // Who made the payment
-  paidAt         DateTime  @default(now()) @map("paid_at")
-  createdAt      DateTime  @default(now()) @map("created_at")
-  
-  debt           CompanyDebt @relation(fields: [debtId], references: [id], onDelete: Cascade)
-  bankAccount    BankAccount? @relation("DebtPaymentBankAccount", fields: [bankAccountId], references: [id], onDelete: SetNull)
-  cashBox        CashBox?    @relation("DebtPaymentCashBox", fields: [cashBoxId], references: [id], onDelete: SetNull)
-  paidBy         User?       @relation("DebtPaymentPaidBy", fields: [paidById], references: [id], onDelete: SetNull)
-  
+  id            String       @id @default(cuid())
+  debtId        String       @map("debt_id")
+  amount        Decimal      @db.Decimal(15, 2)
+  paymentSource String       @map("payment_source")
+  bankAccountId String?      @map("bank_account_id")
+  cashBoxId     String?      @map("cash_box_id")
+  referenceNo   String?      @map("reference_no")
+  notes         String?
+  paidById      String?      @map("paid_by_id")
+  paidAt        DateTime     @default(now()) @map("paid_at")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  bankAccount   BankAccount? @relation("DebtPaymentBankAccount", fields: [bankAccountId], references: [id])
+  cashBox       CashBox?     @relation("DebtPaymentCashBox", fields: [cashBoxId], references: [id])
+  debt          CompanyDebt  @relation(fields: [debtId], references: [id], onDelete: Cascade)
+  paidBy        User?        @relation("DebtPaymentPaidBy", fields: [paidById], references: [id])
+
   @@index([debtId])
   @@index([bankAccountId])
   @@index([cashBoxId])
@@ -750,93 +625,68 @@ model CompanyDebtPayment {
   @@map("company_debt_payments")
 }
 
-// ================================
-// PIUTANG (ACCOUNTS RECEIVABLE)
-// ================================
-
 model Receivable {
-  id               String    @id @default(cuid())
-  transactionId    String    @unique @map("transaction_id")
-  
-  // Debtor info (denormalized for quick access)
-  customerName     String?   @map("customer_name")
-  customerPhone    String?   @map("customer_phone")
-  
-  // Amounts
-  totalAmount      Decimal   @db.Decimal(15,2) @map("total_amount")
-  paidAmount       Decimal   @default(0) @db.Decimal(15,2) @map("paid_amount")
-  remainingAmount  Decimal   @db.Decimal(15,2) @map("remaining_amount")
-  
-  // Assignment & Follow-up
-  assignedToId     String?   @map("assigned_to_id") // Karyawan/sales yang bertanggung jawab
-  priority         String    @default("normal") // low, normal, high, urgent
-  
-  // Status tracking
-  status           String    @default("active") // active, paid, cancelled, bad_debt
-  lastFollowUpAt   DateTime? @map("last_follow_up_at")
-  lastFollowUpNote String?   @map("last_follow_up_note")
-  nextFollowUpDate DateTime? @map("next_follow_up_date")
-  
-  // Overdue tracking (computed)
-  overdueDays      Int       @default(0) @map("overdue_days")
-  reminderCount    Int       @default(0) @map("reminder_count")
-  lastReminderAt   DateTime? @map("last_reminder_at")
-  
-  // Notes
+  id               String               @id @default(cuid())
+  transactionId    String               @unique @map("transaction_id")
+  customerName     String?              @map("customer_name")
+  customerPhone    String?              @map("customer_phone")
+  totalAmount      Decimal              @map("total_amount") @db.Decimal(15, 2)
+  paidAmount       Decimal              @default(0) @map("paid_amount") @db.Decimal(15, 2)
+  remainingAmount  Decimal              @map("remaining_amount") @db.Decimal(15, 2)
+  assignedToId     String?              @map("assigned_to_id")
+  priority         String               @default("normal")
+  status           String               @default("active")
+  lastFollowUpAt   DateTime?            @map("last_follow_up_at")
+  lastFollowUpNote String?              @map("last_follow_up_note")
+  nextFollowUpDate DateTime?            @map("next_follow_up_date")
+  overdueDays      Int                  @default(0) @map("overdue_days")
+  reminderCount    Int                  @default(0) @map("reminder_count")
+  lastReminderAt   DateTime?            @map("last_reminder_at")
   notes            String?
-  createdById      String?   @map("created_by_id")
-  version          Int       @default(1)
-  
-  createdAt        DateTime  @default(now()) @map("created_at")
-  updatedAt        DateTime  @updatedAt @map("updated_at")
-  
-  transaction     Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
-  assignedTo      User?       @relation("AssignedReceivable", fields: [assignedToId], references: [id], onDelete: SetNull)
-  createdBy       User?       @relation("ReceivableCreator", fields: [createdById], references: [id], onDelete: SetNull)
-  followUps       ReceivableFollowUp[]
-  
+  createdById      String?              @map("created_by_id")
+  version          Int                  @default(1)
+  createdAt        DateTime             @default(now()) @map("created_at")
+  updatedAt        DateTime             @updatedAt @map("updated_at")
+  followUps        ReceivableFollowUp[]
+  assignedTo       User?                @relation("AssignedReceivable", fields: [assignedToId], references: [id])
+  createdBy        User?                @relation("ReceivableCreator", fields: [createdById], references: [id])
+  transaction      Transaction          @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
   @@index([status])
   @@index([assignedToId])
   @@map("receivables")
 }
 
 model ReceivableFollowUp {
-  id            String    @id @default(cuid())
-  receivableId  String    @map("receivable_id")
-  type          String    // call, whatsapp, visit, email, other
-  note          String
-  outcome       String?   // promised_to_pay, no_response, dispute, partial_payment, rescheduled
-  promisedDate  DateTime? @map("promised_date") // Tanggal janji bayar
-  createdById   String    @map("created_by_id")
-  
-  createdAt     DateTime  @default(now()) @map("created_at")
-  
-  receivable    Receivable @relation(fields: [receivableId], references: [id], onDelete: Cascade)
-  createdBy     User       @relation("ReceivableFollowUpCreator", fields: [createdById], references: [id], onDelete: Cascade)
-  
+  id           String     @id @default(cuid())
+  receivableId String     @map("receivable_id")
+  type         String
+  note         String
+  outcome      String?
+  promisedDate DateTime?  @map("promised_date")
+  createdById  String     @map("created_by_id")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  createdBy    User       @relation("ReceivableFollowUpCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  receivable   Receivable @relation(fields: [receivableId], references: [id], onDelete: Cascade)
+
   @@index([receivableId])
   @@index([createdById])
   @@index([createdAt])
   @@map("receivable_follow_ups")
 }
 
-// ================================
-// LOGS & EVENTS
-// ================================
-
 model Log {
   id        String   @id @default(cuid())
-  type      String   // activity, error, audit
+  type      String
   userId    String?
   action    String
   entity    String?
   entityId  String?
-  payload   String?  // JSON
+  payload   String?
   message   String?
   createdAt DateTime @default(now()) @map("created_at")
-  
-  user      User?    @relation("LogUser", fields: [userId], references: [id], onDelete: SetNull)
-  
+  user      User?    @relation("LogUser", fields: [userId], references: [id])
+
   @@index([createdAt])
   @@index([userId, createdAt])
   @@index([action])
@@ -844,57 +694,44 @@ model Log {
   @@map("logs")
 }
 
-// ================================
-// SALES TARGET
-// ================================
-
 model SalesTarget {
   id             String   @id @default(cuid())
-  userId         String   @map("user_id") // Sales user
-  period         String   // monthly, quarterly, yearly
+  userId         String   @map("user_id")
+  period         String
   year           Int
-  month          Int      @default(0) // 1-12, for monthly targets (0 = not monthly)
-  quarter        Int      @default(0) // 1-4, for quarterly targets (0 = not quarterly)
-  targetAmount   Decimal @db.Decimal(15,2) @map("target_amount") // Target penjualan dalam Rupiah
-  achievedAmount Decimal @default(0) @db.Decimal(15,2) @map("achieved_amount") // Sudah tercapai
-  status         String   @default("active") // active, completed, expired
+  month          Int      @default(0)
+  quarter        Int      @default(0)
+  targetAmount   Decimal  @map("target_amount") @db.Decimal(15, 2)
+  achievedAmount Decimal  @default(0) @map("achieved_amount") @db.Decimal(15, 2)
+  status         String   @default("active")
   notes          String?
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
-  
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   @@unique([userId, period, year, month, quarter])
   @@index([userId, period, status])
   @@map("sales_targets")
 }
 
-// ================================
-// SALES TASK / PENUGASAN
-// ================================
-
 model SalesTask {
-  id             String    @id @default(cuid())
-  title          String    // Judul tugas
-  description    String?   // Deskripsi detail
-  type           String    @default("general") // general, visit, followup, prospecting, collection, other
-  priority       String    @default("normal")  // low, normal, high, urgent
-  
-  assignedToId   String    @map("assigned_to_id") // Sales yang ditugaskan
-  assignedById   String    @map("assigned_by_id") // Super admin yang memberi tugas
-  
-  status         String    @default("pending") // pending, in_progress, completed, cancelled
-  dueDate        DateTime? @map("due_date") // Deadline tugas
-  completedAt    DateTime? @map("completed_at") // Waktu selesai
-  completionNote String?   @map("completion_note") // Catatan saat menyelesaikan
-  
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
-  
-  assignedTo     User     @relation("TaskAssignedTo", fields: [assignedToId], references: [id], onDelete: Cascade)
-  assignedBy     User     @relation("TaskAssignedBy", fields: [assignedById], references: [id], onDelete: Cascade)
+  id             String            @id @default(cuid())
+  title          String
+  description    String?
+  type           String            @default("general")
+  priority       String            @default("normal")
+  assignedToId   String            @map("assigned_to_id")
+  assignedById   String            @map("assigned_by_id")
+  status         String            @default("pending")
+  dueDate        DateTime?         @map("due_date")
+  completedAt    DateTime?         @map("completed_at")
+  completionNote String?           @map("completion_note")
+  createdAt      DateTime          @default(now()) @map("created_at")
+  updatedAt      DateTime          @updatedAt @map("updated_at")
   reports        SalesTaskReport[]
-  
+  assignedBy     User              @relation("TaskAssignedBy", fields: [assignedById], references: [id], onDelete: Cascade)
+  assignedTo     User              @relation("TaskAssignedTo", fields: [assignedToId], references: [id], onDelete: Cascade)
+
   @@index([assignedToId, status])
   @@index([status])
   @@index([dueDate])
@@ -903,41 +740,34 @@ model SalesTask {
 }
 
 model SalesTaskReport {
-  id           String   @id @default(cuid())
-  taskId       String   @map("task_id")
-  reportedById String   @map("reported_by_id") // Sales yang melaporkan
-  status       String   // pending, in_progress, completed, cancelled
-  note         String   // Laporan/catatam
-  evidence     String?  // Bukti (deskripsi / link foto)
-  
-  createdAt    DateTime @default(now()) @map("created_at")
-  
-  task         SalesTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  id           String    @id @default(cuid())
+  taskId       String    @map("task_id")
+  reportedById String    @map("reported_by_id")
+  status       String
+  note         String
+  evidence     String?
+  createdAt    DateTime  @default(now()) @map("created_at")
   reportedBy   User      @relation("TaskReportedBy", fields: [reportedById], references: [id])
-  
+  task         SalesTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
   @@index([taskId])
   @@index([reportedById])
   @@map("sales_task_reports")
 }
 
-// ================================
-// COURIER CASH MANAGEMENT
-// ================================
-
 model CourierCash {
-  id             String   @id @default(cuid())
-  courierId      String   @map("courier_id")
-  unitId         String   @map("unit_id")
-  balance        Decimal  @default(0) @db.Decimal(15,2)  // Current cash in hand
-  totalCollected Decimal  @default(0) @db.Decimal(15,2) @map("total_collected") // Lifetime cash collected from deliveries
-  totalHandover  Decimal  @default(0) @db.Decimal(15,2) @map("total_handover") // Lifetime cash handed over to brankas
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
-  
-  courier        User     @relation(fields: [courierId], references: [id], onDelete: Cascade)
-  unit           Unit     @relation(fields: [unitId], references: [id])
+  id             String            @id @default(cuid())
+  courierId      String            @map("courier_id")
+  unitId         String            @map("unit_id")
+  balance        Decimal           @default(0) @db.Decimal(15, 2)
+  totalCollected Decimal           @default(0) @map("total_collected") @db.Decimal(15, 2)
+  totalHandover  Decimal           @default(0) @map("total_handover") @db.Decimal(15, 2)
+  createdAt      DateTime          @default(now()) @map("created_at")
+  updatedAt      DateTime          @updatedAt @map("updated_at")
+  courier        User              @relation(fields: [courierId], references: [id], onDelete: Cascade)
+  unit           Unit              @relation(fields: [unitId], references: [id])
   handovers      CourierHandover[]
-  
+
   @@unique([courierId, unitId])
   @@index([courierId])
   @@index([unitId])
@@ -945,35 +775,30 @@ model CourierCash {
 }
 
 model CourierHandover {
-  id               String    @id @default(cuid())
-  courierCashId    String    @map("courier_cash_id")
-  amount           Decimal   @db.Decimal(15,2)
+  id               String          @id @default(cuid())
+  courierCashId    String          @map("courier_cash_id")
+  amount           Decimal         @db.Decimal(15, 2)
   notes            String?
-  status           String    @default("pending") // pending, processed, rejected
-  financeRequestId String?   @unique @map("finance_request_id")
-  processedById    String?   @map("processed_by_id")
-  processedAt      DateTime? @map("processed_at")
-  createdAt        DateTime  @default(now()) @map("created_at")
-  updatedAt        DateTime  @updatedAt @map("updated_at")
-  
-  courierCash      CourierCash @relation(fields: [courierCashId], references: [id], onDelete: Cascade)
+  status           String          @default("pending")
+  financeRequestId String?         @unique @map("finance_request_id")
+  processedById    String?         @map("processed_by_id")
+  processedAt      DateTime?       @map("processed_at")
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
+  courierCash      CourierCash     @relation(fields: [courierCashId], references: [id], onDelete: Cascade)
   financeRequest   FinanceRequest? @relation(fields: [financeRequestId], references: [id])
-  
+
   @@index([courierCashId])
   @@map("courier_handovers")
 }
 
-// ================================
-// LOGS & EVENTS
-// ================================
-
 model Event {
   id        String   @id @default(cuid())
-  type      String   // transaction_created, payment_received, stock_low, etc.
-  payload   String   // JSON
+  type      String
+  payload   String
   isRead    Boolean  @default(false) @map("is_read")
   createdAt DateTime @default(now()) @map("created_at")
-  
+
   @@index([createdAt])
   @@index([isRead])
   @@index([type])
@@ -981,53 +806,44 @@ model Event {
   @@map("events")
 }
 
-// ================================
-// APP SETTINGS
-// ================================
-
 model Setting {
   id        String   @id @default(cuid())
   key       String   @unique
-  value     String   // JSON
+  value     String
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
-  
+
   @@map("settings")
 }
 
-// ================================
-// CASHBACK SYSTEM
-// ================================
-
 model CashbackConfig {
-  id                String   @id @default(cuid())
-  type              String   // percentage, fixed
-  value             Decimal  @default(0) @db.Decimal(15,2)
-  maxCashback       Decimal  @default(0) @db.Decimal(15,2) @map("max_cashback")
-  minOrder          Decimal  @default(0) @db.Decimal(15,2) @map("min_order")
-  referralBonusType String   @default("percentage") @map("referral_bonus_type")
-  referralBonusValue Decimal @default(0) @db.Decimal(15,2) @map("referral_bonus_value")
-  isActive          Boolean  @default(true) @map("is_active")
-  createdAt         DateTime @default(now()) @map("created_at")
-  updatedAt         DateTime @updatedAt @map("updated_at")
-  
+  id                 String   @id @default(cuid())
+  type               String
+  value              Decimal  @default(0) @db.Decimal(15, 2)
+  maxCashback        Decimal  @default(0) @map("max_cashback") @db.Decimal(15, 2)
+  minOrder           Decimal  @default(0) @map("min_order") @db.Decimal(15, 2)
+  referralBonusType  String   @default("percentage") @map("referral_bonus_type")
+  referralBonusValue Decimal  @default(0) @map("referral_bonus_value") @db.Decimal(15, 2)
+  isActive           Boolean  @default(true) @map("is_active")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
   @@map("cashback_config")
 }
 
 model CashbackLog {
-  id            String   @id @default(cuid())
-  customerId    String   @map("customer_id")
-  transactionId String?  @map("transaction_id")
-  withdrawalId  String?  @map("withdrawal_id")
-  type          String   // earned, withdrawn, reversed, referral_bonus
-  amount        Decimal @db.Decimal(15,2)
+  id            String              @id @default(cuid())
+  customerId    String              @map("customer_id")
+  transactionId String?             @map("transaction_id")
+  withdrawalId  String?             @map("withdrawal_id")
+  type          String
+  amount        Decimal             @db.Decimal(15, 2)
   description   String?
-  createdAt     DateTime @default(now()) @map("created_at")
-  
+  createdAt     DateTime            @default(now()) @map("created_at")
   customer      Customer            @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  transaction   Transaction?        @relation(fields: [transactionId], references: [id], onDelete: SetNull)
-  withdrawal    CashbackWithdrawal? @relation(fields: [withdrawalId], references: [id], onDelete: SetNull)
-  
+  transaction   Transaction?        @relation(fields: [transactionId], references: [id])
+  withdrawal    CashbackWithdrawal? @relation(fields: [withdrawalId], references: [id])
+
   @@index([customerId])
   @@index([transactionId])
   @@index([withdrawalId])
@@ -1037,58 +853,52 @@ model CashbackLog {
 }
 
 model CashbackWithdrawal {
-  id              String    @id @default(cuid())
-  customerId      String    @map("customer_id")
-  amount          Decimal @db.Decimal(15,2)
-  bankName        String?   @map("bank_name")
-  accountNo       String?   @map("account_no")
-  accountHolder   String?   @map("account_holder")
-  status          String    @default("pending") // pending, approved, rejected, processed
-  notes           String?
-  sourceType      String?   @map("source_type")        // profit_paid, hpp_paid
-  destinationType String?   @map("destination_type")   // bank_account, cash_box, other
-  bankAccountId   String?   @map("bank_account_id")    // rekening bank yang digunakan untuk bayar
-  cashBoxId       String?   @map("cash_box_id")        // brankas yang digunakan untuk bayar
-  otherDestination String?  @map("other_destination")  // keterangan jika dari lain-lain
-  processedById   String?   @map("processed_by_id")
-  processedAt     DateTime? @map("processed_at")
-  rejectionReason String?   @map("rejection_reason")
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
-  
-  customer        Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  bankAccount     BankAccount? @relation("CashbackWithdrawalBankAccount", fields: [bankAccountId], references: [id], onDelete: SetNull)
-  cashBox         CashBox?     @relation("CashbackWithdrawalCashBox", fields: [cashBoxId], references: [id], onDelete: SetNull)
-  processedBy     User?        @relation("CashbackProcessedBy", fields: [processedById], references: [id], onDelete: SetNull)
-  cashbackLogs    CashbackLog[]
-  
+  id               String        @id @default(cuid())
+  customerId       String        @map("customer_id")
+  amount           Decimal       @db.Decimal(15, 2)
+  bankName         String?       @map("bank_name")
+  accountNo        String?       @map("account_no")
+  accountHolder    String?       @map("account_holder")
+  status           String        @default("pending")
+  notes            String?
+  sourceType       String?       @map("source_type")
+  destinationType  String?       @map("destination_type")
+  bankAccountId    String?       @map("bank_account_id")
+  cashBoxId        String?       @map("cash_box_id")
+  otherDestination String?       @map("other_destination")
+  processedById    String?       @map("processed_by_id")
+  processedAt      DateTime?     @map("processed_at")
+  rejectionReason  String?       @map("rejection_reason")
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @updatedAt @map("updated_at")
+  cashbackLogs     CashbackLog[]
+  bankAccount      BankAccount?  @relation("CashbackWithdrawalBankAccount", fields: [bankAccountId], references: [id])
+  cashBox          CashBox?      @relation("CashbackWithdrawalCashBox", fields: [cashBoxId], references: [id])
+  customer         Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  processedBy      User?         @relation("CashbackProcessedBy", fields: [processedById], references: [id])
+
   @@index([customerId])
   @@index([status])
   @@index([createdAt])
   @@map("cashback_withdrawal")
 }
 
-// ================================
-// CUSTOMER DEAL PRICES
-// ================================
-
 model CustomerPrice {
-  id          String   @id @default(cuid())
-  customerId  String   @map("customer_id")
-  productId   String   @map("product_id")
-  dealPrice   Decimal @db.Decimal(15,2) @map("deal_price")         // Harga deal per main unit
-  subUnitPrice Decimal @default(0) @db.Decimal(15,2) @map("sub_unit_price") // Harga deal per sub unit
-  approvedById String? @map("approved_by_id")      // Sales/Admin yang menyetujui harga deal
-  transactionId String? @map("transaction_id")     // Transaksi terakhir yang menetapkan harga ini
-  isActive    Boolean  @default(true) @map("is_active")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-  
-  customer    Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  product     Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
-  approvedBy  User?      @relation("PriceApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
-  transaction Transaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
-  
+  id            String       @id @default(cuid())
+  customerId    String       @map("customer_id")
+  productId     String       @map("product_id")
+  dealPrice     Decimal      @map("deal_price") @db.Decimal(15, 2)
+  subUnitPrice  Decimal      @default(0) @map("sub_unit_price") @db.Decimal(15, 2)
+  approvedById  String?      @map("approved_by_id")
+  transactionId String?      @map("transaction_id")
+  isActive      Boolean      @default(true) @map("is_active")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+  approvedBy    User?        @relation("PriceApprovedBy", fields: [approvedById], references: [id])
+  customer      Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  product       Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  transaction   Transaction? @relation(fields: [transactionId], references: [id])
+
   @@unique([customerId, productId])
   @@index([customerId])
   @@index([productId])
@@ -1096,43 +906,35 @@ model CustomerPrice {
   @@map("customer_prices")
 }
 
-// ================================
-// CUSTOMER REFERRALS
-// ================================
-
 model CustomerReferral {
-  id                String   @id @default(cuid())
-  customerId        String   @map("customer_id") // Referrer
-  referralCustomerId String?  @map("referral_customer_id") // Referred customer
-  referralCode      String?  @map("referral_code")
-  phone             String?
-  businessName      String?  @map("business_name") // Nama usaha referral
-  picName           String?  @map("pic_name") // Nama PIC referral
-  notes             String?  // Catatan tambahan
-  status            String   @default("new") // new, contacted, converted, lost
-  bonusAmount       Decimal  @default(0) @db.Decimal(15,2) @map("bonus_amount")
-  createdAt         DateTime @default(now()) @map("created_at")
-  updatedAt         DateTime @updatedAt @map("updated_at")
-  
+  id                 String   @id @default(cuid())
+  customerId         String   @map("customer_id")
+  referralCustomerId String?  @map("referral_customer_id")
+  referralCode       String?  @map("referral_code")
+  phone              String?
+  businessName       String?  @map("business_name")
+  picName            String?  @map("pic_name")
+  notes              String?
+  status             String   @default("new")
+  bonusAmount        Decimal  @default(0) @map("bonus_amount") @db.Decimal(15, 2)
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
   @@index([customerId])
   @@index([referralCustomerId])
   @@index([status])
   @@map("customer_referral")
 }
 
-// ================================
-// FINANCE LEDGER (Immutable Audit Trail)
-// ================================
-
 model FinanceLedger {
   id            String   @id @default(cuid())
-  journalId     String   @map("journal_id") // Groups related entries from one operation
-  accountType   String   @map("account_type") // pool, bank, cashbox
-  accountKey    String   @map("account_key")  // e.g., pool_hpp_paid_balance, or CUID of bank/cashbox
-  delta         Decimal @db.Decimal(15,2)                         // positive=credit, negative=debit
-  balanceBefore Decimal @db.Decimal(15,2) @map("balance_before")
-  balanceAfter  Decimal @db.Decimal(15,2) @map("balance_after")
-  referenceType String   @map("reference_type") // payment, expense, transfer, deposit, debt_payment, pool_adjustment, fund_request, salary, cashback_withdrawal, courier_handover, system_reset
+  journalId     String   @map("journal_id")
+  accountType   String   @map("account_type")
+  accountKey    String   @map("account_key")
+  delta         Decimal  @db.Decimal(15, 2)
+  balanceBefore Decimal  @map("balance_before") @db.Decimal(15, 2)
+  balanceAfter  Decimal  @map("balance_after") @db.Decimal(15, 2)
+  referenceType String   @map("reference_type")
   referenceId   String?  @map("reference_id")
   description   String?
   createdBy     String?  @map("created_by_id")
