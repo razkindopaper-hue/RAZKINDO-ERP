@@ -34,6 +34,7 @@ import {
   Select, SelectTrigger, SelectValue, SelectContent, SelectItem
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { VirtualGrid } from '@/components/ui/virtual-list';
 
 // Product Form Component — Single compact form
 function ProductForm({ onSuccess, initialData, units, existingCategories }: {
@@ -82,19 +83,56 @@ function ProductForm({ onSuccess, initialData, units, existingCategories }: {
     );
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) { toast.error('Ukuran file maksimal 2MB'); return; }
+    if (file.size > 5 * 1024 * 1024) { toast.error('Ukuran file maksimal 5MB'); return; }
     const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
     if (!allowedTypes.includes(file.type)) { toast.error('Format tidak didukung. Gunakan JPG, PNG, WebP, atau GIF.'); return; }
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const dataUrl = ev.target?.result as string;
-      setImagePreview(dataUrl);
-      setFormData(prev => ({ ...prev, imageUrl: dataUrl }));
-    };
-    reader.readAsDataURL(file);
+
+    // Show preview immediately
+    const previewUrl = URL.createObjectURL(file);
+    setImagePreview(previewUrl);
+
+    // Try uploading to Supabase Storage CDN first
+    try {
+      const formDataUpload = new FormData();
+      formDataUpload.append('file', file);
+      // Use existing product ID for new products, generate temp ID for new
+      const pid = initialData?.id || crypto.randomUUID();
+      formDataUpload.append('productId', pid);
+
+      const res = await fetch('/api/products/upload-image', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+        body: formDataUpload,
+      });
+      const result = await res.json();
+
+      if (res.ok && result.url) {
+        setFormData(prev => ({ ...prev, imageUrl: result.url }));
+        toast.success('Gambar berhasil diupload');
+      } else if (result.fallback) {
+        // Storage not configured — fall back to base64
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          const dataUrl = ev.target?.result as string;
+          setFormData(prev => ({ ...prev, imageUrl: dataUrl }));
+        };
+        reader.readAsDataURL(file);
+      } else {
+        throw new Error(result.error || 'Upload gagal');
+      }
+    } catch (err: any) {
+      // Fallback to base64 on any error
+      console.warn('[Image] Upload failed, falling back to base64:', err);
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const dataUrl = ev.target?.result as string;
+        setFormData(prev => ({ ...prev, imageUrl: dataUrl }));
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   // Compute avgHpp per subUnit from main unit input
@@ -971,7 +1009,140 @@ export default function ProductsModule() {
         
         {/* ── Produk Tab ── */}
         <TabsContent value="products">
-          {/* Products Grid */}
+          {/* Products Grid — virtual scrolling for 50+ products, normal grid otherwise */}
+          {products.length > 30 ? (
+            <VirtualGrid
+              items={products}
+              columns={4}
+              estimateSize={220}
+              gap={12}
+              className="min-w-0"
+              containerClassName="min-w-0"
+              getItemKey={(p: any) => p.id}
+              renderItem={(p: any) => {
+                const isPerUnit = (p as any).stockType === 'per_unit';
+                const isTracking = (p as any).trackStock !== false;
+                const displayStock = isTracking
+                  ? (selectedUnitId && isPerUnit ? ((p as any).effectiveStock ?? (p as any).unitStock ?? 0) : (p as any).globalStock)
+                  : 0;
+                const displayStockStr = isTracking ? formatStock(displayStock, (p as any).unit, (p as any).subUnit, (p as any).conversionRate) : 'Tidak dilacak';
+                const isLow = isTracking && displayStock <= (p as any).minStock;
+
+                return (
+                <Card className={cn(
+                  isPerUnit && selectedUnitId && !(p as any).hasAccess && "opacity-60",
+                  !isTracking && "opacity-80",
+                  "overflow-hidden"
+                )}>
+                  <CardContent className="p-4 overflow-hidden">
+                    {/* Track Stock Toggle */}
+                    <div className="flex items-center justify-between mb-2 min-w-0">
+                      <div className="flex items-center gap-1.5 min-w-0 overflow-hidden">
+                        {isTracking ? (
+                          <PackageCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                        ) : (
+                          <PackageX className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                        )}
+                        <span className="text-[11px] text-muted-foreground whitespace-nowrap">Lacak Stok</span>
+                      </div>
+                      {user?.role === 'super_admin' && (
+                        <Switch
+                          checked={isTracking}
+                          onCheckedChange={(checked) => {
+                            toggleTrackStockMutation.mutate({ id: (p as any).id, trackStock: checked });
+                          }}
+                          className="scale-90"
+                        />
+                      )}
+                    </div>
+
+                    <div className="flex gap-3 mb-2 min-w-0 overflow-hidden">
+                      {(p as any).imageUrl ? (
+                        <img src={(p as any).imageUrl} alt={(p as any).name} className="w-14 h-14 sm:w-16 sm:h-16 rounded-lg object-cover shrink-0 bg-muted border" />
+                      ) : (
+                        <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-lg bg-muted border flex items-center justify-center shrink-0">
+                          <Package className="w-5 h-5 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0 flex flex-col justify-between">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-0.5 min-w-0 overflow-hidden">
+                            <h3 className="font-medium truncate">{(p as any).name}</h3>
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0">
+                              {isPerUnit ? 'Per Unit' : 'Tersentral'}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground min-w-0 truncate">{(p as any).sku || '-'}</p>
+                        </div>
+                        <div className="flex items-center gap-1 justify-end mt-1">
+                          <Badge variant={isLow ? "destructive" : (isTracking ? "secondary" : "outline")}>
+                            {isTracking ? displayStockStr : 'Nonaktif'}
+                          </Badge>
+                          {user?.role === 'super_admin' && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="min-h-[44px] min-w-[44px]">
+                                  <MoreVertical className="w-3 h-3" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => setEditingProduct(p as any)}>
+                                  <Edit className="w-4 h-4 mr-2" />
+                                  Edit Produk
+                                </DropdownMenuItem>
+                                {isTracking && (
+                                  <DropdownMenuItem onClick={() => setShowStock(p as any)}>
+                                    <Package className="w-4 h-4 mr-2" />
+                                    Kelola Stok
+                                  </DropdownMenuItem>
+                                )}
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  className="text-red-600"
+                                  disabled={deleteMutation.isPending}
+                                  onClick={() => {
+                                    if (confirm('Hapus produk ini?')) {
+                                      deleteMutation.mutate((p as any).id);
+                                    }
+                                  }}
+                                >
+                                  <Trash2 className="w-4 h-4 mr-2" />
+                                  {deleteMutation.isPending ? 'Menghapus...' : 'Hapus'}
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {isTracking && isPerUnit && selectedUnitId && !(p as any).hasAccess && (
+                      <p className="text-xs text-amber-600 mb-2">Produk belum tersedia di cabang ini</p>
+                    )}
+
+                    {/* Price display */}
+                    {(p as any).avgHpp > 0 && (
+                      <div className="flex justify-between text-sm min-w-0 overflow-hidden">
+                        <span className="text-muted-foreground shrink-0">HPP:</span>
+                        <span className="min-w-0 truncate text-right">{formatCurrency((p as any).avgHpp * ((p as any).conversionRate || 1))}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between text-sm min-w-0 overflow-hidden">
+                      <span className="text-muted-foreground shrink-0">Harga Jual:</span>
+                      <span className="font-medium text-primary min-w-0 truncate text-right">{formatCurrency((p as any).sellingPrice || 0)}</span>
+                    </div>
+                    {isLow && (p as any).hasAccess !== false && (
+                      <Alert variant="destructive" className="mt-3 py-2">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertDescription className="text-xs">Stok rendah!</AlertDescription>
+                      </Alert>
+                    )}
+                  </CardContent>
+                </Card>
+                );
+              }}
+            />
+          ) : (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 min-w-0 overflow-hidden">
             {products.map((p: any) => {
               const isPerUnit = p.stockType === 'per_unit';
@@ -1115,6 +1286,7 @@ export default function ProductsModule() {
               );
             })}
           </div>
+          )}
         </TabsContent>
         
         {/* ── Nilai Aset Tab ── */}
