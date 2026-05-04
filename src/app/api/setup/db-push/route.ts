@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { enforceSuperAdmin } from '@/lib/require-auth';
-import { getSessionPool } from '@/lib/connection-pool';
 
 /**
  * POST /api/setup/db-push
@@ -65,59 +64,24 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // ── Step 2: Fallback — drop orphaned tables via direct SQL ──
+    // ── Step 2: Retry with DIRECT_URL if first attempt failed ──
     if (!prismaSuccess) {
-      const droppedTables: string[] = [];
-      const orphanedTables = [
-        'push_subscriptions', // Removed in commit 8be855a
-      ];
-
       try {
-        const pool = await getSessionPool();
-        const client = await pool.connect();
-
-        try {
-          for (const table of orphanedTables) {
-            try {
-              await client.query(`DROP TABLE IF EXISTS "${table}" CASCADE`);
-              droppedTables.push(table);
-            } catch {
-              // Table might not exist, that's fine
-            }
-          }
-
-          // Also clean up settings table entries for removed features
-          const orphanedSettings = ['vapid_config'];
-          for (const key of orphanedSettings) {
-            try {
-              await client.query(`DELETE FROM settings WHERE key = '${key}'`);
-            } catch {
-              // settings table might not exist, that's fine
-            }
-          }
-
-          // Try prisma db push again after cleanup (already using DIRECT_URL from above)
-          try {
-            const { execSync } = await import('child_process');
-            if (directUrl && !process.env.DATABASE_URL?.includes('db.')) {
-              process.env.DATABASE_URL = directUrl;
-            }
-            output = execSync('npx prisma db push --accept-data-loss 2>&1', {
-              cwd: process.cwd(),
-              timeout: 90_000,
-              encoding: 'utf-8',
-              stdio: ['pipe', 'pipe', 'pipe'],
-            });
-            prismaSuccess = true;
-          } catch (retryError: any) {
-            output += '\n\n--- Retry after cleanup ---\n' + (retryError?.stdout || '') + (retryError?.stderr || '');
-            console.error('[Setup:DbPush] Retry also failed:', output.substring(0, 1000));
-          }
-        } finally {
-          client.release();
+        const { execSync } = await import('child_process');
+        const directUrl = process.env.DIRECT_URL;
+        if (directUrl) {
+          process.env.DATABASE_URL = directUrl;
         }
-      } catch (poolError) {
-        console.error('[Setup:DbPush] Direct SQL fallback error:', poolError);
+        output = execSync('npx prisma db push --accept-data-loss 2>&1', {
+          cwd: process.cwd(),
+          timeout: 90_000,
+          encoding: 'utf-8',
+          stdio: ['pipe', 'pipe', 'pipe'],
+        });
+        prismaSuccess = true;
+      } catch (retryError: any) {
+        output += '\n\n--- Retry failed ---\n' + (retryError?.stdout || '') + (retryError?.stderr || '');
+        console.error('[Setup:DbPush] Retry also failed:', output.substring(0, 1000));
       }
     }
 
