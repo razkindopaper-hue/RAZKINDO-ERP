@@ -789,3 +789,30 @@ Stage Summary:
 - 16 files changed (+33, -1083 lines), 6 files deleted, 2 packages removed
 - Lint: 0 errors, 2 warnings (pre-existing)
 - Setup checks reduced from 6 to 4 (Schema, Realtime, Storage, Tripay)
+---
+Task ID: fix-dbpush-vapid-email-cleanup
+Agent: Main Agent
+Task: Remove remaining VAPID/Email from pengaturan, fix db-push failure
+
+Work Log:
+
+### 1. Verify VAPID/Email Removal
+- Checked all source files for remaining references to push-notification, email-service, VAPID, resend
+- Only remaining 'Bell' references are legitimate UI icons in StorageTab (database monitoring) and page.tsx (notifications bell), not push notification related
+- SettingsModule.tsx Integrasi tab only has TripaySettingsTab — no VAPID/Email
+- SetupTab already cleaned up in previous commit
+
+### 2. Fix db-push "Gagal mempush schema ke database"
+- Root cause: prisma db push fails when dropping the removed push_subscriptions table
+- Even with --accept-data-loss, some Prisma versions/Docker environments can fail
+- Fix: Rewrote db-push route with 3-step approach:
+  1. Run prisma generate first (ensures client is current)
+  2. Try prisma db push --accept-data-loss
+  3. If fails: direct SQL fallback (DROP TABLE push_subscriptions, DELETE vapid_config setting), then retry prisma db push
+- Added 'detail' and 'hint' response fields with actual error output
+- Updated SetupTab handleAction to show error detail in toast description
+
+Stage Summary:
+- Commit: 24ef673 — pushed to GitHub, CI/CD rebuild triggered
+- 2 files changed (+95, -20 lines)
+- Lint: 0 errors, 2 warnings (pre-existing)
