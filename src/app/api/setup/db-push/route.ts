@@ -5,7 +5,7 @@ import { enforceSuperAdmin } from '@/lib/require-auth';
  * POST /api/setup/db-push
  *
  * Push the Prisma schema to the database to create missing tables
- * (e.g., push_subscriptions, qris_payments).
+ * (e.g., qris_payments).
  *
  * Uses `npx prisma db push --accept-data-loss` which connects via DATABASE_URL.
  * In sandbox environments (SQLite) this will fail — that's expected.

@@ -31,8 +31,19 @@ export async function GET(
       .single();
 
     if (error || !customer) {
-      // Log the actual error for debugging
-      if (error) console.error('PWA customer lookup DB error:', error.message, error.code);
+      // Differentiate genuine "not found" from DB errors
+      if (error) {
+        console.error('PWA customer lookup DB error:', error.message, error.code);
+        // PGRST116 = not found (0 rows), others = connection/query error
+        const isNotFound = error.code === 'PGRST116' ||
+          (error.message && (error.message.includes('does not exist') || error.message.includes('no rows')));
+        if (!isNotFound) {
+          return NextResponse.json(
+            { error: 'Terjadi kesalahan server' },
+            { status: 500 }
+          );
+        }
+      }
       return NextResponse.json(
         { error: 'Kode pelanggan tidak ditemukan' },
         { status: 404 }

@@ -8,8 +8,6 @@ interface SetupStatus {
   realtime: { ok: boolean; tables: string[]; message: string };
   storage: { ok: boolean; bucket: string | null; message: string };
   tripay: { ok: boolean; mode: string | null; message: string };
-  vapid: { ok: boolean; message: string };
-  email: { ok: boolean; message: string };
   imageMigration: { totalBase64: number; totalSizeMB: string; message: string };
 }
 
@@ -30,13 +28,11 @@ export async function GET(request: NextRequest) {
     if (!authResult.success) return authResult.response;
 
     // Run all checks in parallel for speed
-    const [schema, realtime, storage, tripay, vapid, email, imageMigration] = await Promise.all([
+    const [schema, realtime, storage, tripay, imageMigration] = await Promise.all([
       checkSchema(),
       checkRealtime(),
       checkStorage(),
       checkTripay(),
-      checkVapid(),
-      checkEmail(),
       checkImageMigration(),
     ]);
 
@@ -45,8 +41,6 @@ export async function GET(request: NextRequest) {
       realtime,
       storage,
       tripay,
-      vapid,
-      email,
       imageMigration,
     };
 
@@ -58,12 +52,12 @@ export async function GET(request: NextRequest) {
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// SCHEMA CHECK — verify push_subscriptions and qris_payments tables exist
+// SCHEMA CHECK — verify qris_payments table exists
 // ─────────────────────────────────────────────────────────────────────
 
 async function checkSchema(): Promise<SetupStatus['schema']> {
   const tables: string[] = [];
-  const requiredTables = ['push_subscriptions', 'qris_payments'];
+  const requiredTables = ['qris_payments'];
 
   for (const table of requiredTables) {
     try {
@@ -190,41 +184,6 @@ async function checkTripay(): Promise<SetupStatus['tripay']> {
       message: 'Gagal memeriksa konfigurasi Tripay',
     };
   }
-}
-
-// ─────────────────────────────────────────────────────────────────────
-// VAPID CHECK — check if VAPID public key exists
-// ─────────────────────────────────────────────────────────────────────
-
-function checkVapid(): SetupStatus['vapid'] {
-  // Check env var first
-  const envKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-
-  // Also check settings table for stored config
-  // (we'll do this async in the parallel check below, but for sync we use env)
-  const ok = !!envKey;
-
-  return {
-    ok,
-    message: ok
-      ? 'VAPID public key tersedia di environment'
-      : 'NEXT_PUBLIC_VAPID_PUBLIC_KEY belum dikonfigurasi',
-  };
-}
-
-// ─────────────────────────────────────────────────────────────────────
-// EMAIL CHECK — check if RESEND_API_KEY exists
-// ─────────────────────────────────────────────────────────────────────
-
-function checkEmail(): SetupStatus['email'] {
-  const ok = !!process.env.RESEND_API_KEY;
-
-  return {
-    ok,
-    message: ok
-      ? 'Resend API key terkonfigurasi'
-      : 'RESEND_API_KEY belum dikonfigurasi',
-  };
 }
 
 // ─────────────────────────────────────────────────────────────────────

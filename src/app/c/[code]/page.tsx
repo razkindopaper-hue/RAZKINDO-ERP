@@ -422,6 +422,7 @@ export default function CustomerPWAPage({
 
   // Data state
   const [customer, setCustomer] = useState<CustomerData | null>(null);
+  const [customerNotFound, setCustomerNotFound] = useState(false);
   const [settings, setSettings] = useState<SettingsData>({});
   const [products, setProducts] = useState<ProductData[]>([]);
   const [orders, setOrders] = useState<OrderData[]>([]);
@@ -495,11 +496,15 @@ export default function CustomerPWAPage({
         ]);
 
         if (!custRes.ok) {
-          throw new Error(await safeParseError(custRes));
+          if (custRes.status === 404) {
+            setCustomerNotFound(true);
+          } else {
+            throw new Error(await safeParseError(custRes));
+          }
+        } else {
+          const custData = await custRes.json();
+          setCustomer(custData.customer);
         }
-
-        const custData = await custRes.json();
-        setCustomer(custData.customer);
 
         if (settRes.ok) {
           const settData = await settRes.json();
@@ -987,8 +992,8 @@ export default function CustomerPWAPage({
     );
   }
 
-  // ── Error: customer not found ──
-  if (!customer) {
+  // ── Error: customer not found (404 from API) ──
+  if (customerNotFound) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex flex-col items-center justify-center p-6">
         <div className="bg-white rounded-3xl shadow-xl shadow-gray-200/50 p-8 max-w-sm text-center w-full border border-gray-100">

@@ -8,7 +8,6 @@ import {
   Database,
   Radio,
   HardDrive,
-  Bell,
   Image as ImageIcon,
   CheckCircle2,
   XCircle,
@@ -17,7 +16,6 @@ import {
   AlertTriangle,
   ExternalLink,
   Eye,
-  EyeOff,
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -42,8 +40,6 @@ interface SetupStatus {
   realtime: { ok: boolean; message: string };
   storage: { ok: boolean; message: string };
   tripay: { ok: boolean; mode: string | null; message: string };
-  vapid: { ok: boolean; message: string };
-  email: { ok: boolean; message: string };
   imageMigration: { totalBase64: number; totalBase64SizeMB: string; message: string };
 }
 
@@ -51,9 +47,6 @@ export default function SetupTab() {
   const queryClient = useQueryClient();
   const [setupStatus, setSetupStatus] = useState<SetupStatus | null>(null);
   const [loading, setLoading] = useState<string | null>(null);
-  const [vapidKeys, setVapidKeys] = useState<{ publicKey: string; privateKey: string } | null>(null);
-  const [showVapidDialog, setShowVapidDialog] = useState(false);
-  const [showVapidPrivate, setShowVapidPrivate] = useState(false);
   const [migrateConfirm, setMigrateConfirm] = useState(false);
 
   const fetchStatus = useCallback(async () => {
@@ -80,32 +73,10 @@ export default function SetupTab() {
         await fetchStatus();
         queryClient.invalidateQueries({ queryKey: ['settings'] });
       } else {
-        toast.error(result.error || `Gagal: ${label}`);
+        toast.error(result.error || result.message || `Gagal: ${label}`);
       }
     } catch (err: any) {
       toast.error(err.message || `Gagal: ${label}`);
-    } finally {
-      setLoading(null);
-    }
-  };
-
-  const handleGenerateVapid = async () => {
-    setLoading('vapid');
-    try {
-      const result = await apiFetch<{ success: boolean; publicKey?: string; privateKey?: string; error?: string }>(
-        '/api/setup/generate-vapid',
-        { method: 'POST' }
-      );
-      if (result.publicKey) {
-        setVapidKeys({ publicKey: result.publicKey, privateKey: result.privateKey || '' });
-        setShowVapidDialog(true);
-        toast.success('VAPID keys berhasil di-generate');
-        await fetchStatus();
-      } else {
-        toast.error(result.error || 'Gagal generate VAPID keys');
-      }
-    } catch (err: any) {
-      toast.error(err.message || 'Gagal generate VAPID keys');
     } finally {
       setLoading(null);
     }
@@ -140,14 +111,12 @@ export default function SetupTab() {
     );
   }
 
-  const totalChecks = 6;
+  const totalChecks = 4;
   const passedChecks = [
     setupStatus.schema.ok,
     setupStatus.realtime.ok,
     setupStatus.storage.ok,
     setupStatus.tripay.ok,
-    setupStatus.vapid.ok,
-    setupStatus.email.ok,
   ].filter(Boolean).length;
 
   return (
@@ -187,7 +156,7 @@ export default function SetupTab() {
         <SetupItemCard
           icon={<Database className="w-4 h-4" />}
           label="Database Schema"
-          description="Tabel push_subscriptions & qris_payments"
+          description="Tabel qris_payments"
           ok={setupStatus.schema.ok}
           message={setupStatus.schema.message}
           actionEndpoint="/api/setup/db-push"
@@ -241,40 +210,6 @@ export default function SetupTab() {
             const event = new CustomEvent('switch-settings-tab', { detail: 'integrasi' });
             window.dispatchEvent(event);
             toast.info('Buka tab Integrasi untuk mengatur Tripay');
-          }}
-          isInfo
-        />
-
-        {/* 5. VAPID Keys */}
-        <SetupItemCard
-          icon={<Bell className="w-4 h-4" />}
-          label="Push Notifications (VAPID)"
-          description="Notifikasi push ke browser pelanggan"
-          ok={setupStatus.vapid.ok}
-          message={setupStatus.vapid.message}
-          actionEndpoint={undefined}
-          actionLabel="Generate Keys"
-          loading={loading === 'vapid'}
-          onAction={handleGenerateVapid}
-        />
-
-        {/* 6. Email */}
-        <SetupItemCard
-          icon={
-            <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2}>
-              <rect x="2" y="4" width="20" height="16" rx="2" />
-              <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
-            </svg>
-          }
-          label="Email Notifications (Resend)"
-          description="Kirim email notifikasi otomatis"
-          ok={setupStatus.email.ok}
-          message={setupStatus.email.message}
-          actionEndpoint={undefined}
-          actionLabel={undefined}
-          loading={false}
-          onAction={() => {
-            window.open('https://resend.com/api-keys', '_blank', 'noopener,noreferrer');
           }}
           isInfo
         />
@@ -344,66 +279,6 @@ export default function SetupTab() {
           Refresh Status
         </Button>
       </div>
-
-      {/* VAPID Keys Dialog */}
-      <Dialog open={showVapidDialog} onOpenChange={setShowVapidDialog}>
-        <DialogContent className="w-[calc(100vw-2rem)] max-w-lg">
-          <DialogHeader>
-            <DialogTitle>VAPID Keys Berhasil Di-generate</DialogTitle>
-            <DialogDescription>
-              Simpan keys ini. Public key bisa di-set di .env sebagai NEXT_PUBLIC_VAPID_PUBLIC_KEY.
-              Private key harus disimpan dengan aman di VAPID_PRIVATE_KEY.
-            </DialogDescription>
-          </DialogHeader>
-          {vapidKeys && (
-            <div className="space-y-3">
-              <div className="space-y-1.5">
-                <Label className="text-sm font-medium">Public Key</Label>
-                <div className="relative">
-                  <code className="block w-full p-2.5 bg-muted rounded-lg text-xs break-all font-mono">
-                    {vapidKeys.publicKey}
-                  </code>
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-sm font-medium">Private Key</Label>
-                <div className="relative">
-                  <code className="block w-full p-2.5 bg-muted rounded-lg text-xs break-all font-mono">
-                    {showVapidPrivate ? vapidKeys.privateKey : '••••••••••••••••••••••••••••••'}
-                  </code>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
-                    onClick={() => setShowVapidPrivate(!showVapidPrivate)}
-                  >
-                    {showVapidPrivate ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-                  </Button>
-                </div>
-              </div>
-              <div className="rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 p-3 text-xs text-amber-700 dark:text-amber-400">
-                <p className="font-medium flex items-center gap-1 mb-1">
-                  <AlertTriangle className="w-3 h-3" /> Penting
-                </p>
-                <p>Keys juga tersimpan di database (settings table). Untuk production, set di file .env server agar persisten antar restart.</p>
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowVapidDialog(false)}>
-              Tutup
-            </Button>
-            <Button
-              onClick={() => {
-                navigator.clipboard.writeText(vapidKeys?.publicKey || '');
-                toast.success('Public key disalin');
-              }}
-            >
-              Salin Public Key
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Migrate Confirm Dialog */}
       <Dialog open={migrateConfirm} onOpenChange={setMigrateConfirm}>
