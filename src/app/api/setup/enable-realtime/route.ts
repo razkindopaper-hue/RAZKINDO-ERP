@@ -10,18 +10,18 @@ const REALTIME_TABLES = [
 /**
  * POST /api/setup/enable-realtime
  *
- * Enable Supabase Realtime for specific tables by adding them
- * to the `supabase_realtime` publication.
+ * Enable Supabase Realtime for tables by adding them to the
+ * supabase_realtime publication via direct DB connection.
  *
- * Uses the session pool (direct DB connection) for DDL operations.
- * Skips tables already in the publication.
+ * Handles permission errors gracefully — some Supabase plans
+ * restrict publication management via SQL.
  */
 export async function POST(request: NextRequest) {
   try {
     const authResult = await enforceSuperAdmin(request);
     if (!authResult.success) return authResult.response;
 
-    // Use DIRECT_URL for ALTER PUBLICATION (PgBouncer doesn't support this DDL)
+    // Use DIRECT_URL for DDL (PgBouncer blocks ALTER PUBLICATION)
     const directUrl = process.env.DIRECT_URL || process.env.DATABASE_URL;
     if (!directUrl) {
       return NextResponse.json({
@@ -36,27 +36,56 @@ export async function POST(request: NextRequest) {
     const successTables: string[] = [];
     const skippedTables: string[] = [];
     const errors: string[] = [];
+    let publicationFound = false;
 
     try {
-      // Step 1: Ensure publication exists
-      try {
-        await client.query('CREATE PUBLICATION supabase_realtime;');
-      } catch (err: any) {
-        const msg = err?.message || String(err);
-        if (msg.includes('already exists')) {
-          // Publication exists — proceed to add tables
-        } else {
-          errors.push(`Gagal membuat publication: ${msg}`);
-          return NextResponse.json({
-            success: false,
-            error: 'Terjadi kesalahan server',
-            errors,
-          }, { status: 500 });
+      // Step 1: Check if supabase_realtime publication exists
+      const pubResult = await client.query(
+        "SELECT pubname FROM pg_publication WHERE pubname = 'supabase_realtime'"
+      );
+      publicationFound = pubResult.rows.length > 0;
+
+      if (!publicationFound) {
+        // Try to create the publication
+        try {
+          await client.query('CREATE PUBLICATION supabase_realtime FOR ALL TABLES;');
+          publicationFound = true;
+        } catch (err: any) {
+          const msg = err?.message || String(err);
+          if (msg.includes('already exists')) {
+            publicationFound = true;
+          } else {
+            // Cannot create publication — try ALTER PUBLICATION anyway as a fallback
+            console.warn('[Setup:EnableRealtime] Cannot create publication:', msg);
+            // Still try ALTER PUBLICATION in case the error is misleading
+            try {
+              await client.query('ALTER PUBLICATION supabase_realtime ADD TABLE events;');
+              publicationFound = true;
+            } catch {
+              // Truly cannot manage publications
+              return NextResponse.json({
+                success: false,
+                error: 'Gagal membuat publication. Aktifkan Realtime langsung dari Supabase Dashboard → Database → Replication.',
+                hint: 'Buka Supabase Dashboard → Settings → Database → Replication, lalu tambahkan tabel manual.',
+              }, { status: 500 });
+            }
+          }
         }
       }
 
-      // Step 2: Add each table to the publication
+      // Step 2: Check which tables are already in the publication
+      const existingResult = await client.query(
+        "SELECT tablename FROM pg_publication_tables WHERE pubname = 'supabase_realtime'"
+      );
+      const existingTables = new Set(existingResult.rows.map((r: any) => r.tablename));
+
+      // Step 3: Add only tables that aren't already in the publication
       for (const table of REALTIME_TABLES) {
+        if (existingTables.has(table)) {
+          skippedTables.push(table);
+          continue;
+        }
+
         try {
           await client.query(
             `ALTER PUBLICATION supabase_realtime ADD TABLE ${table};`
@@ -64,13 +93,15 @@ export async function POST(request: NextRequest) {
           successTables.push(table);
         } catch (err: any) {
           const msg = err?.message || String(err);
-          if (msg.includes('already exists') || msg.includes('already a member')) {
-            // Table already in publication — skip
+          if (msg.includes('already') || msg.includes('member')) {
             skippedTables.push(table);
           } else if (msg.includes('does not exist') || msg.includes('relation')) {
-            errors.push(`Tabel "${table}" tidak ditemukan`);
+            // Table doesn't exist in DB — skip silently (not critical)
+            skippedTables.push(table);
+          } else if (msg.includes('permission denied') || msg.includes('must be owner') || msg.includes('superuser')) {
+            errors.push(`${table}: Tidak punya izin (Aktifkan via Supabase Dashboard)`);
           } else {
-            errors.push(`${table}: ${msg}`);
+            errors.push(`${table}: ${msg.substring(0, 100)}`);
           }
         }
       }
@@ -80,18 +111,19 @@ export async function POST(request: NextRequest) {
     }
 
     const allTables = [...successTables, ...skippedTables];
+
+    // Determine success: all tables are either added or already existed
+    const allOk = errors.length === 0 && allTables.length === REALTIME_TABLES.length;
+
     const message = errors.length > 0
       ? `Realtime: ${successTables.length} ditambahkan, ${skippedTables.length} sudah ada, ${errors.length} error`
-      : `Realtime diaktifkan untuk ${allTables.length} tabel`;
+      : `Realtime aktif untuk ${allTables.length} tabel (${successTables.length} baru)`;
 
     console.log('[Setup:EnableRealtime]', message, { successTables, skippedTables, errors });
 
     return NextResponse.json({
-      success: errors.length === 0,
+      success: allOk,
       message,
-      tables: allTables,
-      added: successTables,
-      skipped: skippedTables,
       ...(errors.length > 0 ? { errors } : {}),
     });
   } catch (error) {

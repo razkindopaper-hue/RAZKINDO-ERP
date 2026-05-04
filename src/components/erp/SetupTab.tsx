@@ -1,11 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
-  Rocket,
-  Database,
   Radio,
   HardDrive,
   Image as ImageIcon,
@@ -23,7 +21,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { apiFetch } from '@/lib/api-client';
 
 interface SetupStatus {
-  schema: { ok: boolean; message: string };
   realtime: { ok: boolean; message: string };
   storage: { ok: boolean; message: string };
   imageMigration: { totalBase64: number; totalBase64SizeMB: string; message: string };
@@ -51,7 +48,7 @@ export default function SetupTab() {
   const handleAction = async (endpoint: string, label: string) => {
     setLoading(label);
     try {
-      const result = await apiFetch<{ success: boolean; message?: string; error?: string }>(endpoint, {
+      const result = await apiFetch<{ success: boolean; message?: string; error?: string; hint?: string }>(endpoint, {
         method: 'POST',
       });
       if (result.success !== false) {
@@ -61,7 +58,7 @@ export default function SetupTab() {
       } else {
         const errMsg = result.error || result.message || `Gagal: ${label}`;
         toast.error(errMsg, {
-          description: result.detail ? result.detail.substring(0, 200) : result.hint || undefined,
+          description: result.hint || undefined,
           duration: 8000,
         });
       }
@@ -101,9 +98,8 @@ export default function SetupTab() {
     );
   }
 
-  const totalChecks = 3;
+  const totalChecks = 2;
   const passedChecks = [
-    setupStatus.schema.ok,
     setupStatus.realtime.ok,
     setupStatus.storage.ok,
   ].filter(Boolean).length;
@@ -114,11 +110,11 @@ export default function SetupTab() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
-            <Rocket className="w-4 h-4" />
+            <Radio className="w-4 h-4" />
             Setup & Konfigurasi Sistem
           </CardTitle>
           <CardDescription>
-            Status setup fitur-fitur lanjutan. Jalankan setup untuk mengaktifkan fitur baru.
+            Status setup fitur-fitur lanjutan.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -141,19 +137,7 @@ export default function SetupTab() {
 
       {/* Setup Items */}
       <div className="space-y-3">
-        {/* 1. Schema */}
-        <SetupItemCard
-          icon={<Database className="w-4 h-4" />}
-          label="Database Schema"
-          description="Sinkronisasi struktur tabel database"
-          ok={setupStatus.schema.ok}
-          message={setupStatus.schema.message}
-          actionLabel="Push Schema"
-          loading={loading === 'schema'}
-          onAction={() => handleAction('/api/setup/db-push', 'Push Schema')}
-        />
-
-        {/* 2. Realtime */}
+        {/* 1. Realtime */}
         <SetupItemCard
           icon={<Radio className="w-4 h-4" />}
           label="Supabase Realtime"
@@ -165,7 +149,7 @@ export default function SetupTab() {
           onAction={() => handleAction('/api/setup/enable-realtime', 'Aktifkan Realtime')}
         />
 
-        {/* 3. Storage */}
+        {/* 2. Storage */}
         <SetupItemCard
           icon={<HardDrive className="w-4 h-4" />}
           label="Storage Bucket"
@@ -220,7 +204,7 @@ export default function SetupTab() {
                 {loading === 'migrate' ? (
                   <Loader2 className="w-3 h-3 mr-1 animate-spin" />
                 ) : (
-                  <Rocket className="w-3 h-3 mr-1" />
+                  <Eye className="w-3 h-3 mr-1" />
                 )}
                 Migrasi Sekarang
               </Button>
@@ -315,9 +299,7 @@ function SetupItemCard({
               disabled={loading}
               className="w-full sm:w-auto shrink-0"
             >
-              {loading ? (
-                <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-              ) : null}
+              {loading ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : null}
               {actionLabel}
             </Button>
           )}

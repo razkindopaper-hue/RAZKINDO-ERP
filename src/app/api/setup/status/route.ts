@@ -2,10 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { enforceSuperAdmin } from '@/lib/require-auth';
 import { isBase64Image, getBase64Size } from '@/lib/image-upload';
-import { getSessionPool } from '@/lib/connection-pool';
 
 interface SetupStatus {
-  schema: { ok: boolean; message: string };
   realtime: { ok: boolean; message: string };
   storage: { ok: boolean; message: string };
   imageMigration: { totalBase64: number; totalBase64SizeMB: string; message: string };
@@ -14,29 +12,20 @@ interface SetupStatus {
 /**
  * GET /api/setup/status
  *
- * Check all setup items and return a comprehensive status object.
+ * Check setup items: realtime, storage, image migration.
  */
 export async function GET(request: NextRequest) {
   try {
     const authResult = await enforceSuperAdmin(request);
     if (!authResult.success) return authResult.response;
 
-    // Run all checks in parallel for speed
-    const [schema, realtime, storage, imageMigration] = await Promise.all([
-      checkSchema(),
+    const [realtime, storage, imageMigration] = await Promise.all([
       checkRealtime(),
       checkStorage(),
       checkImageMigration(),
     ]);
 
-    const status: SetupStatus = {
-      schema,
-      realtime,
-      storage,
-      imageMigration,
-    };
-
-    return NextResponse.json(status);
+    return NextResponse.json({ realtime, storage, imageMigration });
   } catch (error) {
     console.error('[Setup:Status] Error:', error);
     return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
@@ -44,40 +33,7 @@ export async function GET(request: NextRequest) {
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// SCHEMA CHECK — verify DB connection is working
-// ─────────────────────────────────────────────────────────────────────
-
-async function checkSchema(): Promise<SetupStatus['schema']> {
-  try {
-    const pool = await getSessionPool();
-    const result = await pool.query('SELECT table_name FROM information_schema.tables WHERE table_schema = \'public\' ORDER BY table_name');
-    const tables = result.rows.map((r: any) => r.table_name);
-
-    // Check critical tables exist
-    const criticalTables = ['users', 'transactions', 'products', 'settings'];
-    const missing = criticalTables.filter(t => !tables.includes(t));
-
-    if (missing.length > 0) {
-      return {
-        ok: false,
-        message: `Tabel kritis belum ada: ${missing.join(', ')}. Push schema.`,
-      };
-    }
-
-    return {
-      ok: true,
-      message: `Database terhubung. ${tables.length} tabel tersedia.`,
-    };
-  } catch (error: any) {
-    return {
-      ok: false,
-      message: 'Gagal terhubung ke database',
-    };
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────
-// REALTIME CHECK — informational: Supabase URL configured?
+// REALTIME CHECK — is Supabase URL configured?
 // ─────────────────────────────────────────────────────────────────────
 
 async function checkRealtime(): Promise<SetupStatus['realtime']> {
@@ -105,26 +61,14 @@ async function checkStorage(): Promise<SetupStatus['storage']> {
     if (error) {
       const msg = error.message || '';
       if (msg.includes('not found') || msg.includes('does not exist') || error.code === '404') {
-        return {
-          ok: false,
-          message: `Bucket "${bucketName}" belum dibuat`,
-        };
+        return { ok: false, message: `Bucket "${bucketName}" belum dibuat` };
       }
-      return {
-        ok: false,
-        message: `Storage error: ${msg}`,
-      };
+      return { ok: false, message: `Storage error: ${msg}` };
     }
 
-    return {
-      ok: true,
-      message: `Bucket "${bucketName}" sudah tersedia`,
-    };
+    return { ok: true, message: `Bucket "${bucketName}" sudah tersedia` };
   } catch {
-    return {
-      ok: false,
-      message: 'Gagal memeriksa storage',
-    };
+    return { ok: false, message: 'Gagal memeriksa storage' };
   }
 }
 
