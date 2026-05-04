@@ -21,11 +21,12 @@ const PUBLIC_PATHS = [
   '/api/payment/',          // Customer payment page
   '/api/pwa-orders/pending', // PWA public order submission
   '/api/pwa-orders/approve', // PWA order approval callback
-  '/api/c/[code]/',         // PWA customer public endpoints
+  '/api/pwa/[code]/',        // PWA customer public endpoints
   '/api/setup-schema',      // Initial setup
   '/api/generate-image',    // Image generation endpoint
   '/api/export/',           // Export endpoints (have own auth)
   '/api/payments/qris/callback', // QRIS payment webhook (Tripay)
+  '/api/settings',          // Public settings (company name, logo — route handles auth internally)
 ];
 
 // ─── Rate limiting (in-memory, Edge compatible) ─────────────────────
