@@ -67,9 +67,8 @@ export async function GET(request: NextRequest) {
       groups,
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Gagal mengambil data broadcast';
     console.error('Broadcast GET error:', error);
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: 'Gagal mengambil data broadcast' }, { status: 500 });
   }
 }
 
@@ -243,8 +242,7 @@ export async function POST(request: NextRequest) {
       results,
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Gagal mengirim broadcast';
     console.error('Broadcast POST error:', error);
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: 'Gagal mengirim broadcast' }, { status: 500 });
   }
 }

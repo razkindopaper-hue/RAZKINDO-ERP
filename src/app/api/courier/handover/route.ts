@@ -226,6 +226,9 @@ export async function POST(request: NextRequest) {
     console.error('Create handover error:', error);
     const message = error instanceof Error ? error.message : 'Terjadi kesalahan server';
     const isValidationError = message.includes('tidak cukup') || message.includes('harus') || message.includes('wajib') || message.includes('valid') || message.includes('belum memiliki') || message.includes('belum di-assign');
-    return NextResponse.json({ error: message }, { status: isValidationError ? 400 : 500 });
+    if (isValidationError) {
+      return NextResponse.json({ error: message }, { status: 400 });
+    }
+    return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
   }
 }

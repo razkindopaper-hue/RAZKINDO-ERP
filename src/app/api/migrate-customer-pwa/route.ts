@@ -130,6 +130,7 @@ export async function POST(request: NextRequest) {
           ) {
             executed++; // harmless
           } else {
+            console.error('Migration statement error:', err);
             errors.push(`${stmt.substring(0, 80)}...: ${msg}`);
           }
         }
@@ -159,9 +160,9 @@ export async function POST(request: NextRequest) {
         success: allOk,
         message: allOk
           ? 'Migrasi customer PWA berhasil! Semua tabel sudah terbuat.'
-          : 'Migrasi selesai dengan beberapa error. Cek detail.',
+          : 'Migrasi selesai dengan beberapa error. Cek log server untuk detail.',
         executed,
-        errors: errors.length > 0 ? errors : undefined,
+        errorCount: errors.length > 0 ? errors.length : undefined,
         tables,
       });
     } finally {
@@ -171,7 +172,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('Migration error:', error);
     return NextResponse.json(
-      { error: `Gagal menjalankan migrasi: ${error.message}` },
+      { error: 'Gagal menjalankan migrasi' },
       { status: 500 }
     );
   }
@@ -206,10 +207,10 @@ export async function GET(request: NextRequest) {
         : 'Beberapa tabel belum dibuat. Jalankan migrasi terlebih dahulu.',
     });
   } catch (error: any) {
+    console.error('Migration status check error:', error);
     return NextResponse.json({
       ready: false,
-      error: error.message,
-      message: 'Gagal mengecek status tabel',
+      error: 'Gagal mengecek status tabel',
     }, { status: 500 });
   }
 }

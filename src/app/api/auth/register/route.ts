@@ -109,6 +109,9 @@ export async function POST(request: NextRequest) {
         message: `Non-ERP employee created: ${name} (${customRole.name})`
       });
 
+      // Audit log
+      createLog(db, { type: 'security', action: 'user_registered', entity: 'user', entityId: userCamel.id, payload: { role: customRole.name, name } });
+
       const { password: _, ...userWithoutPassword } = userCamel!;
       return NextResponse.json({
         user: { ...userWithoutPassword, userUnits, customRole: toCamelCase(customRole) }
@@ -258,6 +261,9 @@ export async function POST(request: NextRequest) {
         action: 'register',
         message: `New user registered: ${validatedName} (${validatedRole}) — units: ${selectedUnitIds.join(', ') || 'none'}`
       });
+
+      // Audit log
+      createLog(db, { type: 'security', action: 'user_registered', entity: 'user', entityId: userCamel.id, payload: { role: validatedRole, name: validatedName } });
 
       const { password: _, ...userWithoutPassword } = userCamel!;
 

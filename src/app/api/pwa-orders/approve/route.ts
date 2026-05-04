@@ -393,7 +393,8 @@ export async function POST(request: NextRequest) {
       }
       // Also revert transaction status back to pending
       await db.from('transactions').update({ status: 'pending' }).eq('id', transactionId);
-      return NextResponse.json({ error: stockErr.message || 'Gagal mengurangi stok — transaksi dikembalikan ke pending' }, { status: 500 });
+      console.error('[PWA APPROVE] Stock deduction failed:', stockErr);
+      return NextResponse.json({ error: 'Gagal mengurangi stok — transaksi dikembalikan ke pending' }, { status: 500 });
     }
 
     // ─── Create receivable for piutang/tempo/cash-with-courier orders ───

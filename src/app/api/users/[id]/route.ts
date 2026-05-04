@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase';
-import { toCamelCase, rowsToCamelCase, generateId } from '@/lib/supabase-helpers';
+import { toCamelCase, rowsToCamelCase, generateId, createLog } from '@/lib/supabase-helpers';
 import bcrypt from 'bcryptjs';
 import { enforceSuperAdmin } from '@/lib/require-auth';
 import { invalidateUserAuthCache } from '@/lib/token';
@@ -172,6 +172,14 @@ export async function PATCH(
     // Invalidate auth cache when status or isActive changes
     if (data.status !== undefined || data.isActive !== undefined) {
       invalidateUserAuthCache(id);
+    }
+
+    // Audit log
+    if (data.status === 'approved') {
+      createLog(db, { type: 'security', action: 'user_approved', entity: 'user', entityId: id });
+    }
+    if (data.isActive === false) {
+      createLog(db, { type: 'security', action: 'user_deactivated', entity: 'user', entityId: id });
     }
 
     // Fetch user units for response

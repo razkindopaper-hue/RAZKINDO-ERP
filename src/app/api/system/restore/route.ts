@@ -75,7 +75,8 @@ export async function POST(request: NextRequest) {
             // Try insert without upsert
             const { error: insertError } = await db.from(table).insert(batch);
             if (insertError) {
-              errors.push(`${table}: ${insertError.message.slice(0, 100)}`);
+              console.error(`[RESTORE] Insert failed for ${table}:`, insertError.message);
+              errors.push(table);
             } else {
               totalRestored += batch.length;
             }
@@ -84,14 +85,16 @@ export async function POST(request: NextRequest) {
           }
         }
       } catch (err: any) {
-        errors.push(`${table}: ${err.message?.slice(0, 100) || 'Unknown error'}`);
+        console.error(`[RESTORE] Batch error for ${table}:`, err.message || err);
+        errors.push(table);
       }
     }
 
     return NextResponse.json({
       success: true,
       message: `Restore selesai: ${totalRestored} record dipulihkan`,
-      errors: errors.length > 0 ? errors.slice(0, 10) : undefined,
+      errorCount: errors.length > 0 ? errors.length : undefined,
+      errorTables: errors.length > 0 ? [...new Set(errors)] : undefined,
     });
   } catch (error) {
     console.error('Restore error:', error);

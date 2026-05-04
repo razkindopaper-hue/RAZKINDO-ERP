@@ -26,8 +26,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ imageUrl: `data:image/png;base64,${imageBase64}` });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Internal server error';
     console.error('Generate image error:', error);
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
   }
 }

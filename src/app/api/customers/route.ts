@@ -222,7 +222,7 @@ export async function POST(request: NextRequest) {
     if (insertResult.error) {
       console.error('Insert customer DB error:', insertResult.error);
       return NextResponse.json(
-        { error: `Gagal menyimpan pelanggan: ${insertResult.error.message}` },
+        { error: 'Gagal menyimpan pelanggan' },
         { status: 400 }
       );
     }
@@ -240,9 +240,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ customer: { ...customerCamel, assignedTo: customerCamel.assignedTo || null } });
   } catch (error: any) {
     console.error('Create customer error:', error);
-    const message = error?.message || 'Terjadi kesalahan server';
     return NextResponse.json(
-      { error: `Gagal membuat pelanggan: ${message}` },
+      { error: 'Gagal membuat pelanggan' },
       { status: 500 }
     );
   }

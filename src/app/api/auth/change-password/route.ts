@@ -3,6 +3,7 @@ import { db } from '@/lib/supabase';
 import { createLog } from '@/lib/supabase-helpers';
 import bcrypt from 'bcryptjs';
 import { verifyAuthUser, invalidateUserAuthCache } from '@/lib/token';
+import { blacklistAllUserTokens } from '@/lib/token-blacklist';
 import { validateBody, authSchemas } from '@/lib/validators';
 
 // POST /api/auth/change-password
@@ -53,6 +54,9 @@ export async function POST(request: NextRequest) {
 
     // Invalidate auth cache so the old token is re-verified
     invalidateUserAuthCache(userId);
+
+    // Blacklist ALL existing tokens for this user (password change invalidates all sessions)
+    blacklistAllUserTokens(userId);
 
     // Create log (fire-and-forget)
     createLog(db, {

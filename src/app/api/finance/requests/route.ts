@@ -133,6 +133,9 @@ export async function POST(request: NextRequest) {
       message.includes('tidak memiliki') ||
       message.includes('Foreign key')
     ) ? 400 : 500;
+    if (status === 500) {
+      return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
+    }
     return NextResponse.json({ error: message }, { status });
   }
 }

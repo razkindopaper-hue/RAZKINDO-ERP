@@ -107,6 +107,7 @@ export async function POST(request: NextRequest) {
     const { email, password } = validation.data;
 
     const normalizedEmail = email.toLowerCase().trim();
+    const clientIp = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || 'unknown';
 
     // Rate limit check
     const rateCheck = checkRateLimit(normalizedEmail);
@@ -132,12 +133,16 @@ export async function POST(request: NextRequest) {
 
     if (!userCamel || userCamel.status !== 'approved' || !userCamel.isActive || userCamel.canLogin === false) {
       recordFailedAttempt(normalizedEmail);
+      // Audit log
+      createLog(db, { type: 'security', action: 'login_failed', entity: 'user', payload: { email: normalizedEmail, ip: clientIp } });
       return NextResponse.json({ error: 'Email atau password salah' }, { status: 401 });
     }
 
     const isValidPassword = await bcrypt.compare(password, userCamel.password as string);
     if (!isValidPassword) {
       recordFailedAttempt(normalizedEmail);
+      // Audit log
+      createLog(db, { type: 'security', action: 'login_failed', entity: 'user', payload: { email: normalizedEmail, ip: clientIp } });
       return NextResponse.json({ error: 'Email atau password salah' }, { status: 401 });
     }
 
@@ -157,6 +162,9 @@ export async function POST(request: NextRequest) {
 
     const { password: _, ...userWithoutPassword } = userCamel!;
     const token = generateToken(userCamel.id);
+
+    // Audit log
+    createLog(db, { type: 'security', action: 'login_success', entity: 'user', entityId: userCamel.id, payload: { ip: clientIp } });
 
     // Resolve effective roles for custom role users
     const effectiveRoles = resolveEffectiveRoles(userCamel as any);

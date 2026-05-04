@@ -9,6 +9,7 @@
 import crypto from 'crypto';
 import { getAuthSecret } from '@/lib/auth-secret';
 import { toCamelCase, camelToSnake } from '@/lib/supabase-helpers';
+import { isTokenBlacklisted } from '@/lib/token-blacklist';
 
 // Cache for verified active users (TTL = 60s)
 // Avoids hitting the DB on every request for the same user
@@ -79,6 +80,9 @@ export function verifyAuthToken(authHeader: string | null): string | null {
     const expectedBuf = Buffer.from(expectedSig, 'utf-8');
     const actualBuf = Buffer.from(signature, 'utf-8');
     if (actualBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(actualBuf, expectedBuf)) return null;
+
+    // Check if token has been revoked (logout or password change)
+    if (isTokenBlacklisted(authHeader)) return null;
 
     return userId;
   } catch {

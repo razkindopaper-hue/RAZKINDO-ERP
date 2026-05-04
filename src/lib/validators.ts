@@ -38,16 +38,16 @@ const sanitizedStringOptional = (maxLen = 1000) =>
 export const authSchemas = {
   /** POST /api/auth/login */
   login: z.object({
-    email: z.string().email('Format email tidak valid'),
-    password: z.string().min(6, 'Password minimal 6 karakter'),
+    email: z.string().email('Format email tidak valid').max(254, 'Email terlalu panjang'),
+    password: z.string().min(6, 'Password minimal 6 karakter').max(72, 'Password maksimal 72 karakter'),
   }),
 
   /** POST /api/auth/register */
   register: z.object({
     name: sanitizedString(100),
-    email: z.string().email('Format email tidak valid'),
-    phone: z.string().optional(),
-    password: z.string().min(6, 'Password minimal 6 karakter'),
+    email: z.string().email('Format email tidak valid').max(254, 'Email terlalu panjang'),
+    phone: z.string().max(20, 'Nomor telepon maksimal 20 karakter').optional(),
+    password: z.string().min(6, 'Password minimal 6 karakter').max(72, 'Password maksimal 72 karakter'),
     role: z.enum(['super_admin', 'sales', 'kurir', 'keuangan', 'admin', 'manager', 'gudang', 'ob', 'sopir'], {
       error: 'Role tidak valid',
     }).or(z.string().min(1).max(50)), // Custom roles accepted but NOT super_admin bypass
@@ -68,7 +68,7 @@ export const authSchemas = {
   /** POST /api/auth/change-password */
   changePassword: z.object({
     currentPassword: z.string().min(1, 'Password lama diperlukan'),
-    newPassword: z.string().min(6, 'Password baru minimal 6 karakter'),
+    newPassword: z.string().min(6, 'Password baru minimal 6 karakter').max(72, 'Password maksimal 72 karakter'),
   }),
 
   /** POST /api/auth/forgot-password */
@@ -80,7 +80,7 @@ export const authSchemas = {
   resetPassword: z.object({
     phone: z.string().min(1, 'Nomor telepon diperlukan'),
     code: z.string().min(1, 'Kode pemulihan diperlukan'),
-    newPassword: z.string().min(6, 'Password minimal 6 karakter'),
+    newPassword: z.string().min(6, 'Password minimal 6 karakter').max(72, 'Password maksimal 72 karakter'),
   }),
 } as const;
 

@@ -989,7 +989,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('[FINANCIAL SNAPSHOT] Error:', error);
     return NextResponse.json(
-      { error: 'Gagal mengambil snapshot keuangan', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'Gagal mengambil snapshot keuangan' },
       { status: 500 }
     );
   }

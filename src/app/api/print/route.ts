@@ -36,7 +36,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('[PrintAPI] Error:', error);
     return NextResponse.json(
-      { success: false, error: 'Gagal mencetak: ' + (error instanceof Error ? error.message : String(error)) },
+      { success: false, error: 'Gagal mencetak' },
       { status: 500 }
     );
   }

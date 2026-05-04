@@ -391,6 +391,10 @@ export async function PUT(
     if (status === 500) {
       return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
     }
+    // If userMessage was not sanitized (still equals raw message), use generic message
+    if (userMessage === message) {
+      return NextResponse.json({ error: 'Gagal memproses permintaan keuangan' }, { status });
+    }
     return NextResponse.json({ error: userMessage }, { status });
   }
 }

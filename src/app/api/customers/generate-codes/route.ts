@@ -60,7 +60,8 @@ export async function POST(request: NextRequest) {
         .eq('id', body.customerId);
 
       if (updateError) {
-        return NextResponse.json({ error: updateError.message }, { status: 400 });
+        console.error('Generate customer code DB error:', updateError);
+        return NextResponse.json({ error: 'Gagal membuat kode pelanggan' }, { status: 400 });
       }
 
       return NextResponse.json({

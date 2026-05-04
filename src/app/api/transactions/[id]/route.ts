@@ -89,8 +89,7 @@ export async function GET(
     });
   } catch (error) {
     console.error('Get transaction error:', error);
-    const message = error instanceof Error ? error.message : 'Terjadi kesalahan server';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
   }
 }
 
@@ -189,7 +188,6 @@ export async function PATCH(
     return NextResponse.json({ transaction: toCamelCase(transaction) });
   } catch (error) {
     console.error('Update transaction error:', error);
-    const message = error instanceof Error ? error.message : 'Terjadi kesalahan server';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
   }
 }

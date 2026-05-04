@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
     if (result.error) {
       console.error('[Logo] DB error:', result.error.message, result.error.code);
       return NextResponse.json(
-        { error: `Gagal menyimpan logo: ${result.error.message}` },
+        { error: 'Gagal menyimpan logo' },
         { status: 500 }
       );
     }
