@@ -558,3 +558,53 @@ Stage Summary:
 - Dev server: GET / 200, GET /api/health 200
 - Security improvements: rate limiting, token revocation, error leak fixes, audit logging
 - All changes are backward compatible — no breaking changes to existing API behavior
+
+---
+Task ID: week2-3-performance-ux
+Agent: Main Agent
+Task: Week 2-3 Performance & UX + Month 2 Logic improvements
+
+Work Log:
+
+### Skeleton Loading States (5 modules)
+- TransactionsModule.tsx: Table skeleton (8 rows, 6 columns, filter bar)
+- ProductsModule.tsx: Card grid skeleton (8 cards, image+title+price)
+- CustomersModule.tsx: Card grid skeleton (9 cards, name+phone+address)
+- FinanceModule.tsx: Dashboard skeleton (4 summary cards + chart area h-64)
+- ReportsModule.tsx: Report skeleton (stat cards + chart area h-64)
+
+### Optimistic UI for SaleForm
+- Optimistic cart item addition: instant add with 600ms ring highlight
+- Optimistic cart item removal: undo toast with 5-second timeout
+- Optimistic form submission: instant clear cart + "Menyimpan transaksi..." overlay, rollback on failure
+- Low stock warning: amber "⚠ Stok tersisa: X" when stock ≤ max(5, 20%)
+
+### Zod Validation (8 API routes)
+- finance/transfers, finance/expenses, finance/cash-boxes, finance/bank-accounts
+- salaries, sales-tasks, courier/deliver, units
+- All use inline Zod schemas replacing manual validation
+
+### DB CHECK Constraints (12 constraints)
+- products: selling_price >= 0, purchase_price >= 0, avg_hpp >= 0, global_stock >= 0, conversion_rate > 0
+- transaction_items: qty > 0, price >= 0
+- transactions: total >= 0, paid_amount >= 0
+- finance_requests: amount > 0
+- bank_accounts: balance >= 0
+- cash_boxes: balance >= 0
+
+### TOCTOU Race Condition Fix
+- batch_decrement_centralized_stock: atomic UPDATE WHERE stock >= qty replaces read-then-update
+- batch_increment_centralized_stock: added for consistency
+- All-or-nothing rollback on any product failure
+
+### Keyboard Shortcuts System
+- New file: src/hooks/use-keyboard-shortcuts.ts
+- New file: src/components/erp/KeyboardShortcutsDialog.tsx
+- Shortcuts: ? (help), Escape (close), Ctrl+N (new transaction), Ctrl+/ (search), 1-9 (module nav)
+- First-visit toast hint: "Tip: Tekan ? untuk melihat shortcut keyboard"
+
+Stage Summary:
+- 18 files changed (+725 lines, -118 lines)
+- 2 new files created
+- Lint: 0 errors, 0 warnings
+- Pushed to GitHub: commit 4c908b8
