@@ -426,9 +426,12 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Create payment error:', error);
     const message = error instanceof Error ? error.message : 'Terjadi kesalahan server';
-    const status = error instanceof Error && error.message.includes('tidak ditemukan') ? 404 : 
+    const status = error instanceof Error && error.message.includes('tidak ditemukan') ? 404 :
           error instanceof Error && (error.message.includes('melebihi') || error.message.includes('belum disetujui') || error.message.includes('dibatalkan') || error.message.includes('wajib') || error.message.includes('non_negative') || error.message.includes('constraint') || error.message.includes('Stok') || error.message.includes('stok') || error.message.includes('Saldo tidak mencukupi') || error.message.includes('sudah lunas')) ? 400 :
           error instanceof Error && error.message.includes('CONCURRENT_MODIFICATION') ? 409 : 500;
+    if (status === 500) {
+      return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
+    }
     return NextResponse.json({ error: message }, { status });
   }
 }

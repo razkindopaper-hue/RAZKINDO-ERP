@@ -185,7 +185,7 @@ function LoginPage() {
         const res = await fetch('/api/auth/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...formData, email })
+          body: JSON.stringify({ ...formData, email, password })
         });
         let data: any;
         try {

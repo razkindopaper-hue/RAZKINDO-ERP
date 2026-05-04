@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('[Moota] Error fetching banks:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Gagal mengambil data bank dari Moota' },
+      { error: 'Terjadi kesalahan server' },
       { status: 500 }
     );
   }

@@ -810,7 +810,7 @@ DECLARE
     'company_debt_payments', 'receivables', 'receivable_follow_ups', 'logs',
     'sales_targets', 'sales_tasks', 'sales_task_reports', 'courier_cash',
     'courier_handovers', 'events', 'settings', 'cashback_config', 'cashback_log',
-    'cashback_withdrawal', 'customer_prices', 'customer_referral'
+    'cashback_withdrawal', 'customer_prices', 'customer_referral', 'finance_ledger'
   ];
 BEGIN
   FOREACH t IN ARRAY tables LOOP

@@ -16,14 +16,14 @@ export async function POST(
 
     const { data: task, error: taskError } = await db.from('sales_tasks').select('id, status, assigned_to_id').eq('id', taskId).maybeSingle();
     if (taskError) {
-      return NextResponse.json({ error: taskError.message }, { status: 500 });
+      return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
     }
     if (!task) return NextResponse.json({ error: 'Tugas tidak ditemukan' }, { status: 404 });
     if (task.assigned_to_id !== authUserId) return NextResponse.json({ error: 'Anda hanya dapat melaporkan tugas yang ditugaskan kepada Anda' }, { status: 403 });
 
     const { data: authUser, error: authUserError } = await db.from('users').select('id, role').eq('id', authUserId).maybeSingle();
     if (authUserError) {
-      return NextResponse.json({ error: authUserError.message }, { status: 500 });
+      return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
     }
     if (!authUser || (authUser.role !== 'sales' && authUser.role !== 'super_admin')) {
       return NextResponse.json({ error: 'Hanya sales yang dapat mengirim laporan tugas' }, { status: 403 });
@@ -72,6 +72,6 @@ export async function POST(
     return NextResponse.json({ report: toCamelCase(report) }, { status: 201 });
   } catch (error: any) {
     console.error('Create sales task report error:', error);
-    return NextResponse.json({ error: error?.message || 'Terjadi kesalahan server' }, { status: 500 });
+    return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
   }
 }

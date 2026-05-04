@@ -191,7 +191,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('Reset password error:', error);
     return NextResponse.json(
-      { error: error?.message || 'Terjadi kesalahan server' },
+      { error: 'Terjadi kesalahan server' },
       { status: 500 }
     );
   }

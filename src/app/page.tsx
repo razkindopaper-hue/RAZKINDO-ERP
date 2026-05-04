@@ -667,7 +667,7 @@ function MainApp() {
               </Popover>
 
               {(user?.role === 'super_admin' || (user?.userUnits && user.userUnits.length > 1)) ? (
-                <Select value={selectedUnitId || (user?.role === 'super_admin' ? '__all__' : '__all__')} onValueChange={handleUnitChange}>
+                <Select value={selectedUnitId || '__all__'} onValueChange={handleUnitChange}>
                   <SelectTrigger className="w-24 sm:w-32 h-8 text-xs border-border/50">
                     <SelectValue placeholder={user?.role === 'super_admin' ? 'Semua Unit' : 'Pilih Unit'} />
                   </SelectTrigger>

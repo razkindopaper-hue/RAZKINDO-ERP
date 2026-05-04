@@ -48,7 +48,7 @@ export async function GET(
   } catch (error: any) {
     console.error('Get product error:', error);
     return NextResponse.json(
-      { error: error?.message || 'Terjadi kesalahan server' },
+      { error: 'Terjadi kesalahan server' },
       { status: 500 }
     );
   }
@@ -145,7 +145,7 @@ export async function PATCH(
   } catch (error: any) {
     console.error('Update product error:', error);
     return NextResponse.json(
-      { error: error?.message || 'Terjadi kesalahan server' },
+      { error: 'Terjadi kesalahan server' },
       { status: 500 }
     );
   }
@@ -191,7 +191,7 @@ export async function DELETE(
   } catch (error: any) {
     console.error('Delete product error:', error);
     return NextResponse.json(
-      { error: error?.message || 'Terjadi kesalahan server' },
+      { error: 'Terjadi kesalahan server' },
       { status: 500 }
     );
   }

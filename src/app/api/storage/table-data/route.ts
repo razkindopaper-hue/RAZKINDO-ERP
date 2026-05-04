@@ -118,7 +118,8 @@ export async function GET(request: NextRequest) {
     const { data, count, error } = await query;
 
     if (error) {
-      return NextResponse.json({ success: false, error: 'Query error: ' + error.message }, { status: 500 });
+      console.error('Table data query error:', error);
+      return NextResponse.json({ success: false, error: 'Query error. Silakan coba lagi.' }, { status: 500 });
     }
 
     // Get status counts for the table
@@ -150,7 +151,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('Table data API error:', error);
-    return NextResponse.json({ success: false, error: 'Gagal mengambil data: ' + error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Gagal mengambil data' }, { status: 500 });
   }
 }
 
@@ -226,6 +227,6 @@ export async function DELETE(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('Table data DELETE error:', error);
-    return NextResponse.json({ success: false, error: 'Gagal menghapus: ' + error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Gagal menghapus data' }, { status: 500 });
   }
 }

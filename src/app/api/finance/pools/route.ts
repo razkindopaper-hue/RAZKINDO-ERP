@@ -303,7 +303,7 @@ export async function POST(request: NextRequest) {
             hint: 'POST /api/setup-rpc'
           }, { status: 503 });
         }
-        throw new Error(error.message);
+        throw new Error('Gagal melakukan rekonsiliasi');
       }
 
       try {
@@ -452,7 +452,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Action tidak valid' }, { status: 400 });
   } catch (error) {
     console.error('Sync pool balances error:', error);
-    const message = error instanceof Error ? error.message : 'Terjadi kesalahan server';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
   }
 }

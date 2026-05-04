@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('[Moota] Error refreshing bank:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Gagal refresh mutasi bank' },
+      { error: 'Terjadi kesalahan server' },
       { status: 500 }
     );
   }

@@ -25,7 +25,7 @@ export async function POST(
       .maybeSingle();
 
     if (txError) {
-      return NextResponse.json({ error: txError.message }, { status: 500 });
+      return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
     }
 
     if (!transaction) {
@@ -387,7 +387,6 @@ export async function POST(
     return NextResponse.json({ transaction: toCamelCase(updatedTransaction || cancelledTx) });
   } catch (error) {
     console.error('Cancel transaction error:', error);
-    const message = error instanceof Error ? error.message : 'Terjadi kesalahan server';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
   }
 }

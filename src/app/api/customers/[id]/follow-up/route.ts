@@ -36,7 +36,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     return NextResponse.json(
-      { error: error?.message || 'Terjadi kesalahan server' },
+      { error: 'Terjadi kesalahan server' },
       { status: 500 }
     );
   }
@@ -132,7 +132,7 @@ export async function POST(
 
     if (insertError) {
       console.error('[CustomerFollowUp] Insert error:', insertError.message, insertError.code, '| payload id:', followUpId, '| table: customer_follow_ups');
-      return NextResponse.json({ error: insertError.message || 'Gagal menyimpan follow-up', detail: `id=${followUpId}, code=${insertError.code}` }, { status: 500 });
+      return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
     }
     if (!followUp) {
       return NextResponse.json({ error: 'Gagal menyimpan follow-up' }, { status: 500 });
@@ -182,7 +182,7 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     return NextResponse.json(
-      { error: error?.message || 'Terjadi kesalahan server' },
+      { error: 'Terjadi kesalahan server' },
       { status: 500 }
     );
   }

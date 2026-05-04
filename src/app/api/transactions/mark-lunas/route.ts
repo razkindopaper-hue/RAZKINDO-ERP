@@ -191,7 +191,7 @@ export async function POST(request: NextRequest) {
       }
       const { data: cashBox, error: cbError } = await db.from('cash_boxes').select('*').eq('id', cashBoxId).maybeSingle();
       if (cbError) {
-        return NextResponse.json({ error: cbError.message }, { status: 500 });
+        return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
       }
       if (!cashBox) return NextResponse.json({ error: 'Brankas tidak ditemukan' }, { status: 404 });
       if (!cashBox.is_active) return NextResponse.json({ error: 'Brankas tidak aktif' }, { status: 400 });
@@ -203,7 +203,7 @@ export async function POST(request: NextRequest) {
       }
       const { data: bankAccount, error: baError } = await db.from('bank_accounts').select('*').eq('id', bankAccountId).maybeSingle();
       if (baError) {
-        return NextResponse.json({ error: baError.message }, { status: 500 });
+        return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
       }
       if (!bankAccount) return NextResponse.json({ error: 'Akun bank tidak ditemukan' }, { status: 404 });
       if (!bankAccount.is_active) return NextResponse.json({ error: 'Akun bank tidak aktif' }, { status: 400 });
@@ -542,7 +542,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Mark lunas error:', error);
-    const message = error instanceof Error ? error.message : 'Terjadi kesalahan server';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
   }
 }

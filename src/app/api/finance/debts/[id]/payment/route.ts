@@ -193,6 +193,9 @@ export async function POST(
       message.includes('Step 1') ||
       message.includes('Step 2')
     ) ? 400 : 500;
+    if (status === 500) {
+      return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
+    }
     return NextResponse.json({ error: message }, { status });
   }
 }

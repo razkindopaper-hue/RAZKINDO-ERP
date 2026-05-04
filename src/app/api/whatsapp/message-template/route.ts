@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     const { data: setting, error } = await db.from('settings').select('*').eq('key', 'whatsapp_message_template').maybeSingle();
     if (error) {
       console.error('[WhatsApp Template GET] DB error:', error.message, error.code);
-      throw new Error(`Database error: ${error.message}`);
+      throw new Error('Gagal memuat template');
     }
 
     if (!setting) {
@@ -32,10 +32,9 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ template });
   } catch (error) {
-    const msg = error instanceof Error ? error.message : String(error);
-    console.error('[WhatsApp Template GET] Error:', msg);
+    console.error('[WhatsApp Template GET] Error:', error);
     return NextResponse.json(
-      { error: 'Terjadi kesalahan server', detail: msg },
+      { error: 'Terjadi kesalahan server' },
       { status: 500 }
     );
   }
@@ -75,7 +74,7 @@ export async function PATCH(request: NextRequest) {
 
     if (updateErr) {
       console.error('[WhatsApp Template PATCH] Update error:', updateErr.message, updateErr.code);
-      throw new Error(`Update gagal: ${updateErr.message} (${updateErr.code})`);
+      throw new Error('Gagal menyimpan template');
     }
 
     if (!updatedRow) {
@@ -90,16 +89,15 @@ export async function PATCH(request: NextRequest) {
 
       if (insertErr) {
         console.error('[WhatsApp Template PATCH] Insert error:', insertErr.message, insertErr.code);
-        throw new Error(`Insert gagal: ${insertErr.message} (${insertErr.code})`);
+        throw new Error('Gagal menyimpan template');
       }
     }
 
     return NextResponse.json({ template });
   } catch (error) {
-    const msg = error instanceof Error ? error.message : String(error);
-    console.error('[WhatsApp Template PATCH] Error:', msg);
+    console.error('[WhatsApp Template PATCH] Error:', error);
     return NextResponse.json(
-      { error: 'Terjadi kesalahan server', detail: msg },
+      { error: 'Terjadi kesalahan server' },
       { status: 500 }
     );
   }

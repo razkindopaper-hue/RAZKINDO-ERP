@@ -380,7 +380,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('[Moota Match] Error:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Terjadi kesalahan server' },
+      { error: 'Terjadi kesalahan server' },
       { status: 500 }
     );
   }

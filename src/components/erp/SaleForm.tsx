@@ -173,6 +173,7 @@ export function SaleForm({
   const [showNotesDrawer, setShowNotesDrawer] = useState(false);
   const [posUnitId, setPosUnitId] = useState(unitId || '');
   const productInputRef = useRef<HTMLInputElement>(null);
+  const paidAmountManuallyEdited = useRef(false);
   const [searchFocused, setSearchFocused] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
 
@@ -216,7 +217,17 @@ export function SaleForm({
   const totalItems = cart.reduce((sum, i) => sum + i.qty, 0);
 
   useEffect(() => { if (unitId) setPosUnitId(unitId); }, [unitId]);
-  useEffect(() => { setPaidAmount(paymentMethod === 'cash' && courierId === 'none' ? total : 0); }, [paymentMethod, total, courierId]);
+  // When payment method or courier changes, reset manual edit flag and recompute
+  useEffect(() => {
+    paidAmountManuallyEdited.current = false;
+    setPaidAmount(paymentMethod === 'cash' && courierId === 'none' ? total : 0);
+  }, [paymentMethod, courierId]);
+  // When total changes (e.g. user adds product), only auto-update if not manually edited
+  useEffect(() => {
+    if (!paidAmountManuallyEdited.current) {
+      setPaidAmount(paymentMethod === 'cash' && courierId === 'none' ? total : 0);
+    }
+  }, [total, paymentMethod, courierId]);
 
   // ============ PANEL NAVIGATION ============
   const openPanel = useCallback((panel: 'customer' | 'unit' | 'courier' | 'products' | 'cart') => {
@@ -252,21 +263,19 @@ export function SaleForm({
     // If trackStock is off, allow adding without stock check
     const isTracking = product.trackStock !== false;
     if (isTracking && product.globalStock <= 0) { toast.error('Stok habis!'); return; }
-    let success = false;
+    let stockError = '';
     setCart(prev => {
       const existing = prev.find(i => i.productId === product.id);
       if (existing) {
         if (isTracking) {
           const existingQtyInSub = existing.qtyUnitType === 'main' ? (existing.qty + 1) * existing.conversionRate : existing.qty + 1;
-          if (existingQtyInSub > product.globalStock) { toast.error(`Stok tidak cukup! Tersedia: ${product.globalStock}`); return prev; }
+          if (existingQtyInSub > product.globalStock) { stockError = `Stok tidak cukup! Tersedia: ${product.globalStock}`; return prev; }
         }
-        success = true;
         return prev.map(i => i.productId === product.id ? { ...i, qty: i.qty + 1 } : i);
       }
       const hasSubUnit = product.subUnit && product.conversionRate > 1;
       const initialQtyInSub = hasSubUnit ? 1 : 1;
-      if (isTracking && initialQtyInSub > product.globalStock) { toast.error(`Stok tidak cukup! Tersedia: ${product.globalStock}`); return prev; }
-      success = true;
+      if (isTracking && initialQtyInSub > product.globalStock) { stockError = `Stok tidak cukup! Tersedia: ${product.globalStock}`; return prev; }
       return [...prev, {
         productId: product.id, productName: product.name, productImageUrl: product.imageUrl || undefined, qty: 1,
         qtyUnitType: (hasSubUnit ? 'sub' : 'main') as 'main' | 'sub',
@@ -278,19 +287,26 @@ export function SaleForm({
         globalStock: product.globalStock, trackStock: product.trackStock !== false, category: product.category ?? null
       }];
     });
-    if (success) toast.success(`${product.name} ditambahkan`);
+    // Toasts must be called OUTSIDE the updater (pure function requirement)
+    if (stockError) {
+      toast.error(stockError);
+    } else {
+      toast.success(`${product.name} ditambahkan`);
+    }
   }, []);
 
   const updateQty = (index: number, delta: number) => {
     if (delta > 0) {
+      let stockError = '';
       setCart(prev => {
         const item = prev[index]; if (!item) return prev;
         const newQty = item.qty + delta;
         const newQtyInSub = item.qtyUnitType === 'main' ? newQty * item.conversionRate : newQty;
         // Only check stock limit when trackStock is enabled
-        if (item.trackStock && newQtyInSub > item.globalStock) { toast.error(`Stok tidak cukup! Tersedia: ${item.globalStock}`); return prev; }
+        if (item.trackStock && newQtyInSub > item.globalStock) { stockError = `Stok tidak cukup! Tersedia: ${item.globalStock}`; return prev; }
         return prev.map((it, i) => i !== index ? it : { ...it, qty: newQty });
       });
+      if (stockError) toast.error(stockError);
     } else {
       setCart(prev => prev.map((item, i) => { if (i !== index) return item; return { ...item, qty: Math.max(0, item.qty + delta) }; }).filter(i => i.qty > 0));
     }

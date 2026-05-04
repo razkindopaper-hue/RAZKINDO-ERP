@@ -132,7 +132,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ personalStats, companyStats, target, inactiveCustomers, recentTransactions: recentTransactionsData, unpaidTransactions: unpaidData, chartData, pendingDeliveries: rowsToCamelCase(pendingDeliveries || []) });
   } catch (error: any) {
     console.error('[SALES_DASHBOARD] Error:', error);
-    return NextResponse.json({ error: error?.message || 'Terjadi kesalahan server' }, { status: 500 });
+    return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
   }
 }
 

@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ salaries: mapped, stats });
   } catch (error: any) {
     console.error('Get salaries error:', error);
-    return NextResponse.json({ error: error?.message || 'Terjadi kesalahan server' }, { status: 500 });
+    return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
   }
 }
 
@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
       createdAt: now, updatedAt: now,
     });
 
-    console.log('[Salary POST] Creating finance_request:', JSON.stringify({ ...frData, id: frData.id?.substring(0, 8) + '...' }));
+
 
     const { data: financeRequest, error: frError } = await db.from('finance_requests').insert(frData).select().single();
     if (frError || !financeRequest) {
@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
         details: (frError as any)?.details,
         hint: (frError as any)?.hint,
       }));
-      return NextResponse.json({ error: 'Gagal membuat request keuangan: ' + (frError?.message || 'Unknown error') }, { status: 500 });
+      return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
     }
 
     // ── Step 2: Create SalaryPayment ──
@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
         createdAt: now, updatedAt: now,
       });
 
-      console.log('[Salary POST] Creating salary_payment:', JSON.stringify({ ...salaryData, id: salaryData.id?.substring(0, 8) + '...' }));
+  
 
       const { data: s, error: sError } = await db.from('salary_payments').insert(salaryData).select(`
         *, user:users!user_id(id, name, email, role), finance_request:finance_requests(id, type, amount, status)
@@ -160,7 +160,7 @@ export async function POST(request: NextRequest) {
       if (errMsg.includes('foreign key') || errMsg.includes('23503')) {
         return NextResponse.json({ error: 'Data referensi tidak valid. Pastikan karyawan dan unit sudah benar.' }, { status: 400 });
       }
-      return NextResponse.json({ error: 'Gagal membuat slip gaji: ' + errMsg }, { status: 500 });
+      return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
     }
 
     createEvent(db, 'salary_request_created', { salaryId: salary.id, requestId: financeRequest.id, userId: data.userId, userName: userData?.name, amount: totalAmount, period: periodDesc });
@@ -169,7 +169,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ salary: toCamelCase(salary) });
   } catch (error: any) {
     console.error('[Salary POST] Unhandled error:', error);
-    const errMsg = error?.message || 'Terjadi kesalahan server';
-    return NextResponse.json({ error: errMsg }, { status: 500 });
+    return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
   }
 }

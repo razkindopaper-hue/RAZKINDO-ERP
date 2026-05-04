@@ -45,7 +45,7 @@ export async function GET(
     return NextResponse.json({ request: toCamelCase(financeRequest) });
   } catch (error: any) {
     console.error('Get finance request error:', error);
-    return NextResponse.json({ error: error?.message || 'Terjadi kesalahan server' }, { status: 500 });
+    return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
   }
 }
 
@@ -388,6 +388,9 @@ export async function PUT(
     const status = error instanceof Error && (
       message.includes('tidak cukup') || message.includes('wajib') || message.includes('tidak ditemukan') || message.includes('tidak memiliki') || message.includes('sudah diproses') || message.includes('Foreign key') || message.includes('tidak valid') || message.includes('constraint') || message.includes('non_negative')
     ) ? 400 : 500;
+    if (status === 500) {
+      return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
+    }
     return NextResponse.json({ error: userMessage }, { status });
   }
 }

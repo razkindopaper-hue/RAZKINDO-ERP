@@ -8,7 +8,10 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   hydrated: boolean;
-  
+  // Activity data stored separately so updates don't trigger re-renders
+  // in components that only read user.name / user.role
+  _activity: { page: string; action: string; lastSeenAt: string } | null;
+
   // Actions
   setUser: (user: User | null) => void;
   setToken: (token: string | null) => void;
@@ -29,6 +32,7 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       isLoading: true,
       hydrated: false,
+      _activity: null,
 
       setUser: (user) => set({ user, isAuthenticated: !!user }),
       setToken: (token) => set({ token }),
@@ -47,19 +51,17 @@ export const useAuthStore = create<AuthState>()(
         token: null, 
         isAuthenticated: false,
         isLoading: false,
-        hydrated: true
+        hydrated: true,
+        _activity: null
       }),
       
       setLoading: (isLoading) => set({ isLoading }),
       
-      updateActivity: (page, action) => set((state) => ({
-        user: state.user ? {
-          ...state.user,
-          currentPage: page,
-          lastAction: action,
-          lastSeenAt: new Date()
-        } : null
-      }))
+      updateActivity: (page, action) => set({
+        // Store activity in a separate key — subscribers that only read `user`
+        // won't re-render since `user` reference stays the same.
+        _activity: { page, action, lastSeenAt: new Date().toISOString() }
+      })
     }),
     {
       name: 'razkindo-auth',

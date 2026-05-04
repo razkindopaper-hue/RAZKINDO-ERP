@@ -105,6 +105,7 @@ function ProductForm({ onSuccess, initialData, units, existingCategories }: {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (formData.sellingPrice <= 0) { toast.error('Harga jual harus lebih dari 0'); return; }
     setLoading(true);
     try {
       const url = initialData ? `/api/products/${initialData.id}` : '/api/products';
@@ -578,7 +579,7 @@ function AssetValueTab({ products }: { products: any[] }) {
                 {d.categories.map((cat: any, i: number) => {
                   const pct = d.totalAssetValue > 0 ? (cat.assetValue / d.totalAssetValue * 100) : 0;
                   return (
-                    <div key={i} className="space-y-1">
+                    <div key={cat.name || cat.id || i} className="space-y-1">
                       <div className="flex items-center justify-between text-sm min-w-0">
                         <span className="font-medium truncate">{cat.name}</span>
                         <div className="flex items-center gap-2 shrink-0 ml-2">

@@ -73,6 +73,6 @@ export async function POST(
     return NextResponse.json({ followUp: toCamelCase(followUp) });
   } catch (error: any) {
     console.error('Create follow-up error:', error);
-    return NextResponse.json({ error: error?.message || 'Terjadi kesalahan server' }, { status: 500 });
+    return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
   }
 }

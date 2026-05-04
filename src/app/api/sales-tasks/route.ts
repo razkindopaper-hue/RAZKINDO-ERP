@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ tasks: mappedTasks, summary });
   } catch (error: any) {
     console.error('Get sales tasks error:', error);
-    return NextResponse.json({ error: error?.message || 'Terjadi kesalahan server' }, { status: 500 });
+    return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
   }
 }
 
@@ -122,6 +122,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ task: toCamelCase(task) }, { status: 201 });
   } catch (error: any) {
     console.error('Create sales task error:', error);
-    return NextResponse.json({ error: error?.message || 'Terjadi kesalahan server' }, { status: 500 });
+    return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
   }
 }

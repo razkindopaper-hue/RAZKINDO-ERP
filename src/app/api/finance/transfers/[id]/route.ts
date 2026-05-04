@@ -19,7 +19,7 @@ export async function PUT(
 
     const { data: authUser, error: authError } = await db.from('users').select('role, is_active, status').eq('id', authUserId).maybeSingle();
     if (authError) {
-      return NextResponse.json({ error: authError.message }, { status: 500 });
+      return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
     }
     if (!authUser || !authUser.is_active || authUser.status !== 'approved') {
       return NextResponse.json({ error: 'Akses ditolak' }, { status: 403 });
@@ -155,6 +155,6 @@ export async function PUT(
     return NextResponse.json({ transfer: toCamelCase(updated) });
   } catch (error: any) {
     console.error('Update fund transfer error:', error);
-    return NextResponse.json({ error: error?.message || 'Terjadi kesalahan server' }, { status: 500 });
+    return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
   }
 }

@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
       .maybeSingle();
 
     if (userError) {
-      return NextResponse.json({ error: userError.message }, { status: 500 });
+      return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
     }
 
     if (!user) {
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('Change password error:', error);
     return NextResponse.json(
-      { error: error?.message || 'Terjadi kesalahan server' },
+      { error: 'Terjadi kesalahan server' },
       { status: 500 }
     );
   }

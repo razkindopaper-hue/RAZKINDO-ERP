@@ -36,7 +36,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
     return NextResponse.json({ task: toCamelCase(task) });
   } catch (error: any) {
     console.error('Get sales task detail error:', error);
-    return NextResponse.json({ error: error?.message || 'Terjadi kesalahan server' }, { status: 500 });
+    return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
   }
 }
 
@@ -78,7 +78,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     if (data.assignedToId && data.assignedToId !== existing.assigned_to_id) {
       const { data: assignedUser, error: assignedError } = await db.from('users').select('id, role, status, is_active').eq('id', data.assignedToId).maybeSingle();
       if (assignedError) {
-        return NextResponse.json({ error: assignedError.message }, { status: 500 });
+        return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
       }
       if (!assignedUser) return NextResponse.json({ error: 'User tidak ditemukan' }, { status: 404 });
       if (assignedUser.role !== 'sales') return NextResponse.json({ error: 'Tugas hanya dapat diberikan kepada sales' }, { status: 400 });
@@ -104,7 +104,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     return NextResponse.json({ task: toCamelCase(task) });
   } catch (error: any) {
     console.error('Update sales task error:', error);
-    return NextResponse.json({ error: error?.message || 'Terjadi kesalahan server' }, { status: 500 });
+    return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
   }
 }
 
@@ -126,6 +126,6 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error('Delete sales task error:', error);
-    return NextResponse.json({ error: error?.message || 'Terjadi kesalahan server' }, { status: 500 });
+    return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
   }
 }

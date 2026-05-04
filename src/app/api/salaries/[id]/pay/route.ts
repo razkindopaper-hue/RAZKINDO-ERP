@@ -169,6 +169,9 @@ export async function POST(
     let status = 500;
     if (message.includes('tidak ditemukan')) status = 404;
     else if (message.includes('tidak cukup') || message.includes('sudah dibayarkan') || message.includes('harus disetujui') || message.includes('sudah ditolak') || message.includes('belum dipilih') || message.includes('harus berupa') || message.includes('telah berubah') || message.includes('wajib dipilih') || message.includes('Step 1') || message.includes('Step 2')) status = 400;
+    if (status === 500) {
+      return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
+    }
     return NextResponse.json({ error: message }, { status });
   }
 }

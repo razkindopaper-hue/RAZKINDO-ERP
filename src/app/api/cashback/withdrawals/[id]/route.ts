@@ -211,6 +211,6 @@ export async function PATCH(
     });
   } catch (error: any) {
     console.error('Cashback withdrawal PATCH error:', error);
-    return NextResponse.json({ error: error?.message || 'Terjadi kesalahan server' }, { status: 500 });
+    return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
   }
 }

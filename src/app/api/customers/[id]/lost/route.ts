@@ -85,7 +85,7 @@ export async function POST(
   } catch (error: any) {
     console.error('Customer mark lost error:', error);
     return NextResponse.json(
-      { error: error?.message || 'Terjadi kesalahan server' },
+      { error: 'Terjadi kesalahan server' },
       { status: 500 }
     );
   }

@@ -46,7 +46,8 @@ export async function GET(request: NextRequest) {
       ],
     });
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    console.error('Setup schema GET error:', error);
+    return NextResponse.json({ success: false, error: 'Terjadi kesalahan server' }, { status: 500 });
   }
 }
 
@@ -108,12 +109,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, message: 'Schema berhasil dibuat!', statements: statements.length });
     } catch (err: any) {
       await client.query('ROLLBACK').catch(() => {});
-      return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+      console.error('Setup schema POST inner error:', err);
+      return NextResponse.json({ success: false, error: 'Terjadi kesalahan server' }, { status: 500 });
     } finally {
       client.release();
       await pool.end();
     }
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    console.error('Setup schema POST error:', error);
+    return NextResponse.json({ success: false, error: 'Terjadi kesalahan server' }, { status: 500 });
   }
 }

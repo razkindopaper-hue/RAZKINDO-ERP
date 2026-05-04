@@ -266,8 +266,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('[Expenses API] Error:', error);
-    const message = error instanceof Error ? error.message : 'Terjadi kesalahan server';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
   }
 }
 
