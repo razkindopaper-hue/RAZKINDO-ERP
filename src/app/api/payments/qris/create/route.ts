@@ -20,9 +20,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!isQrisConfigured()) {
+    if (!(await isQrisConfigured())) {
       return NextResponse.json({
-        error: 'Pembayaran QRIS belum dikonfigurasi. Set TRIPAY_API_KEY, TRIPAY_PRIVATE_KEY, dan TRIPAY_MERCHANT_CODE di .env',
+        error: 'Pembayaran QRIS belum dikonfigurasi. Buka Pengaturan > Integrasi untuk mengatur kredensial Tripay.',
       }, { status: 503 });
     }
 

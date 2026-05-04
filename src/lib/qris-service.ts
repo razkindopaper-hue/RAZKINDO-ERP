@@ -4,12 +4,21 @@
 // Handles QRIS payment creation, status checking, and webhook processing.
 // Uses Tripay API for QRIS code generation.
 //
-// REQUIREMENTS:
-//   - TRIPAY_API_KEY in .env (get from https://tripay.co.id)
-//   - TRIPAY_PRIVATE_KEY in .env
-//   - TRIPAY_MERCHANT_CODE in .env
-//   - Set TRIPAY_MODE to 'production' or 'sandbox' (default: sandbox)
+// CONFIGURATION:
+//   Primary:  settings table → key: 'tripay_config', value: JSON string
+//             { apiKey, privateKey, merchantCode, mode }
+//   Fallback: TRIPAY_API_KEY, TRIPAY_PRIVATE_KEY, TRIPAY_MERCHANT_CODE, TRIPAY_MODE in .env
+//   Admin UI: Pengaturan > Integrasi
 // =====================================================================
+
+// ---------- types ----------
+
+interface TripayConfig {
+  apiKey: string;
+  privateKey: string;
+  merchantCode: string;
+  mode: 'sandbox' | 'production';
+}
 
 interface TripayTransaction {
   reference: string;
@@ -49,20 +58,87 @@ interface TripayCallbackPayload {
   signature: string;
 }
 
-function getTripayBaseUrl(): string {
-  return process.env.TRIPAY_MODE === 'production'
+// ---------- cached config loader ----------
+
+let _cachedConfig: TripayConfig | null = null;
+let _configFetchTime: number = 0;
+const CONFIG_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+async function getTripayConfig(): Promise<TripayConfig> {
+  const now = Date.now();
+  if (_cachedConfig && (now - _configFetchTime) < CONFIG_CACHE_TTL) {
+    return _cachedConfig;
+  }
+
+  // Try reading from the settings table first
+  try {
+    const { db } = await import('@/lib/supabase');
+    const { data } = await db
+      .from('settings')
+      .select('value')
+      .eq('key', 'tripay_config')
+      .maybeSingle();
+
+    if (data?.value) {
+      const config = JSON.parse(data.value) as TripayConfig;
+      if (!config.apiKey || !config.privateKey || !config.merchantCode) {
+        throw new Error('Konfigurasi Tripay tidak lengkap');
+      }
+      _cachedConfig = config;
+      _configFetchTime = now;
+      return config;
+    }
+  } catch (err) {
+    // If the settings table lookup itself fails (e.g. column doesn't exist yet),
+    // fall through to env-var fallback below.
+    if (err instanceof SyntaxError) {
+      throw new Error('Format konfigurasi Tripay tidak valid');
+    }
+    // For non-parse errors (missing row, DB unreachable), silently fall through
+  }
+
+  // Fallback to environment variables for backward compatibility
+  const envConfig: TripayConfig = {
+    apiKey: process.env.TRIPAY_API_KEY || '',
+    privateKey: process.env.TRIPAY_PRIVATE_KEY || '',
+    merchantCode: process.env.TRIPAY_MERCHANT_CODE || '',
+    mode: (process.env.TRIPAY_MODE as 'sandbox' | 'production') || 'sandbox',
+  };
+
+  if (envConfig.apiKey && envConfig.privateKey && envConfig.merchantCode) {
+    _cachedConfig = envConfig;
+    _configFetchTime = now;
+    return envConfig;
+  }
+
+  throw new Error('Tripay belum dikonfigurasi. Buka Pengaturan > Integrasi untuk mengatur kredensial Tripay.');
+}
+
+/**
+ * Invalidate the in-memory Tripay config cache.
+ * Call this after updating the 'tripay_config' setting so the next
+ * request picks up the new credentials immediately.
+ */
+export function invalidateTripayConfigCache(): void {
+  _cachedConfig = null;
+  _configFetchTime = 0;
+}
+
+// ---------- internal helpers ----------
+
+async function getTripayBaseUrl(): Promise<string> {
+  const config = await getTripayConfig();
+  return config.mode === 'production'
     ? 'https://tripay.co.id/api'
     : 'https://tripay.co.id/api-sandbox';
 }
 
-function getTripayAuth(): string {
-  const apiKey = process.env.TRIPAY_API_KEY;
-  const privateKey = process.env.TRIPAY_PRIVATE_KEY;
-  if (!apiKey || !privateKey) {
-    throw new Error('TRIPAY_API_KEY and TRIPAY_PRIVATE_KEY are required');
-  }
-  return Buffer.from(`${apiKey}:${privateKey}`).toString('base64');
+async function getTripayAuth(): Promise<string> {
+  const config = await getTripayConfig();
+  return Buffer.from(`${config.apiKey}:${config.privateKey}`).toString('base64');
 }
+
+// ---------- public API ----------
 
 /**
  * Create a QRIS payment transaction via Tripay.
@@ -77,18 +153,18 @@ export async function createQrisPayment(data: {
   returnUrl: string;
   expiresInMinutes?: number;
 }): Promise<TripayTransaction> {
-  const merchantCode = process.env.TRIPAY_MERCHANT_CODE;
-  if (!merchantCode) {
+  const config = await getTripayConfig();
+  if (!config.merchantCode) {
     throw new Error('TRIPAY_MERCHANT_CODE is required');
   }
 
-  const methodCode = process.env.TRIPAY_MODE === 'production' ? 'QRIS' : 'QRIS';
+  const methodCode = 'QRIS';
   const expiresInMinutes = data.expiresInMinutes || 1440; // 24 hours default
 
-  const response = await fetch(`${getTripayBaseUrl()}/transaction/create`, {
+  const response = await fetch(`${await getTripayBaseUrl()}/transaction/create`, {
     method: 'POST',
     headers: {
-      'Authorization': `Basic ${getTripayAuth()}`,
+      'Authorization': `Basic ${await getTripayAuth()}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
@@ -125,10 +201,10 @@ export async function createQrisPayment(data: {
  */
 export async function getQrisStatus(reference: string): Promise<TripayTransaction> {
   const response = await fetch(
-    `${getTripayBaseUrl()}/transaction?reference=${encodeURIComponent(reference)}`,
+    `${await getTripayBaseUrl()}/transaction?reference=${encodeURIComponent(reference)}`,
     {
       headers: {
-        'Authorization': `Basic ${getTripayAuth()}`,
+        'Authorization': `Basic ${await getTripayAuth()}`,
       },
     }
   );
@@ -146,7 +222,8 @@ export async function getQrisStatus(reference: string): Promise<TripayTransactio
  * Verify Tripay callback signature.
  */
 export async function verifyTripaySignature(payload: TripayCallbackPayload): Promise<boolean> {
-  const privateKey = process.env.TRIPAY_PRIVATE_KEY;
+  const config = await getTripayConfig();
+  const privateKey = config.privateKey;
   if (!privateKey) return false;
 
   const crypto = await import('crypto');
@@ -178,14 +255,15 @@ export function mapTripayStatus(tripayStatus: string): 'paid' | 'pending' | 'exp
 }
 
 /**
- * Check if QRIS/Tripay is configured.
+ * Check if QRIS/Tripay is configured (settings table or env vars).
  */
-export function isQrisConfigured(): boolean {
-  return !!(
-    process.env.TRIPAY_API_KEY &&
-    process.env.TRIPAY_PRIVATE_KEY &&
-    process.env.TRIPAY_MERCHANT_CODE
-  );
+export async function isQrisConfigured(): Promise<boolean> {
+  try {
+    await getTripayConfig();
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export type { TripayTransaction, TripayCallbackPayload };
