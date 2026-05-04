@@ -753,3 +753,39 @@ Stage Summary:
 - Root cause: Literal `[code]` string in PUBLIC_PATHS never matched dynamic route URLs
 - Fix: Replaced `/api/pwa/[code]/` + `/api/pwa/icon` + `/api/pwa/manifest` with single `/api/pwa/` prefix
 - Commit: a891769 - pushed to GitHub, CI/CD rebuild triggered
+---
+Task ID: fix-pwa-realtime-remove-push-email
+Agent: Main Agent
+Task: Fix PWA customer error, Realtime setup error, remove Push VAPID & Email Resend
+
+Work Log:
+
+### 1. PWA "Kode Tidak Ditemukan" Fix
+- Previous middleware fix (a891769) was correct: `/api/pwa/` prefix matches all PWA routes
+- But investigation revealed the API route masked ALL errors (including 500 server errors) as 404 "Kode tidak ditemukan"
+- Frontend also masked all errors as "Kode Tidak Ditemukan" (only had `if (!customer)` check)
+- Fixed API: Check error.code === 'PGRST116' to distinguish genuine not-found from connection errors
+- Fixed Frontend: Added `customerNotFound` state, set on HTTP 404 only; 500 errors now show toast
+
+### 2. Supabase Realtime "Gagal: Aktifkan Realtime" Fix
+- Found in SetupTab.tsx: `handleAction` only checked `result.error` but not `result.message`
+- The enable-realtime API returns `{ success: false, message: "..." }` for partial failures
+- Fixed: `toast.error(result.error || result.message || ...)` — now shows the actual backend message
+
+### 3. Push Notification VAPID — Complete Removal
+- Deleted 6 files: push-notifications.ts, email-service.ts, 4 API routes
+- Removed PushSubscription model from prisma/schema.prisma
+- Removed push handlers from public/sw.js (upgraded v7→v8)
+- Removed VAPID setup item + VAPID dialog from SetupTab.tsx (6→4 checks)
+- Removed checkVapid() from setup/status/route.ts
+- Removed web-push + resend packages (bun remove)
+- Removed VAPID/RESEND env vars from .env.example
+
+### 4. Email Notification Resend — Complete Removal  
+- Same commit as above — all email-related code deleted
+
+Stage Summary:
+- Commit: 8be855a — pushed to GitHub, CI/CD rebuild triggered
+- 16 files changed (+33, -1083 lines), 6 files deleted, 2 packages removed
+- Lint: 0 errors, 2 warnings (pre-existing)
+- Setup checks reduced from 6 to 4 (Schema, Realtime, Storage, Tripay)
