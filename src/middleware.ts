@@ -16,12 +16,10 @@ const PUBLIC_PATHS = [
   '/api/auth/check-superadmin',
   '/api/health',
   '/api/health/ready',
-  '/api/pwa/icon',
-  '/api/pwa/manifest',
+  '/api/pwa/',              // PWA customer public endpoints (icon, manifest, /[code]/*)
   '/api/payment/',          // Customer payment page
   '/api/pwa-orders/pending', // PWA public order submission
   '/api/pwa-orders/approve', // PWA order approval callback
-  '/api/pwa/[code]/',        // PWA customer public endpoints
   '/api/setup-schema',      // Initial setup
   '/api/generate-image',    // Image generation endpoint
   '/api/export/',           // Export endpoints (have own auth)
