@@ -839,3 +839,26 @@ Stage Summary:
 - Prisma schema: QrisPayment model dihapus (tabel qris_payments akan di-drop saat db:push)
 - Lint: 0 errors, 0 new warnings
 - Tripay/QRIS 100% bersih dari seluruh codebase
+
+---
+Task ID: fix-realtime-remove-schema
+Agent: Main Agent
+Task: Fix Realtime 8 errors, hapus Database Schema dari SetupTab, cek bugs, push
+
+Work Log:
+- Realtime "8 error": Root cause was PgBouncer blocking DDL + deliveries table not existing + CREATE PUBLICATION failing silently
+- Rewrote enable-realtime/route.ts: Uses DIRECT_URL (bypasses PgBouncer), queries pg_publication first to find existing tables, handles permission errors with clear Supabase Dashboard instructions
+- Removed `deliveries` table from REALTIME_TABLES (7 tables now, no deliveries model in Prisma)
+- Removed Database Schema from SetupTab entirely — dangerous db-push button removed
+- Deleted db-push API route (src/app/api/setup/db-push/route.ts)
+- Simplified status API: removed checkSchema(), only realtime + storage + imageMigration
+- SetupTab: 2 checks only (Realtime, Storage), removed unused imports (Database, Rocket, Separator, ExternalLink, Label)
+- Verified: 0 lint errors, 0 broken imports, GET / 200 OK
+- Pushed to GitHub: commit 4301ab3
+
+Stage Summary:
+- enable-realtime: Now queries existing publication tables, uses DIRECT_URL, gives clear hint if permission denied
+- SetupTab: Clean 2-item setup (Realtime + Storage) — no dangerous db-push button
+- db-push route deleted entirely
+- Lint: 0 errors, 2 pre-existing warnings (TanStack Virtual)
+- CI/CD rebuild triggered on push
