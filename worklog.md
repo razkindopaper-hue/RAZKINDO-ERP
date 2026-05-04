@@ -608,3 +608,58 @@ Stage Summary:
 - 2 new files created
 - Lint: 0 errors, 0 warnings
 - Pushed to GitHub: commit 4c908b8
+---
+Task ID: month2-3-implementation
+Agent: Main Agent
+Task: Month 2-3 Roadmap — Supabase Realtime, Saga pattern, Push, Email, QRIS
+
+Work Log:
+
+### 1. Supabase Realtime Integration
+- Created src/hooks/use-supabase-realtime.ts — client-side hook with postgres_changes subscriptions
+- Monitors 8 tables: events, transactions, products, payments, finance_requests, deliveries, users, customers
+- Adaptive debounce: 300ms critical, 800ms medium, 1500ms normal
+- Replaced useRealtimeSync() with useSupabaseRealtime() in src/app/page.tsx
+- Zero infrastructure needed — no WebSocket mini-service required
+- Supabase Realtime must be enabled for subscribed tables in Supabase Dashboard
+
+### 2. Saga Pattern (Compensating Transactions)
+- Rewrote src/app/api/transactions/[id]/approve/route.ts:
+  - 3-step saga: optimistic lock → fetch products → process stock changes
+  - Each step has rollback function
+  - Stock reversal on approval failure (prevents partial deduction data corruption)
+- Rewrote src/app/api/transactions/[id]/cancel/route.ts:
+  - 8-step saga: reverse stock → cancel receivable → reverse payments → reverse pools → reverse courier cash → delete payments → reverse customer stats
+  - Compensating rollback for all steps
+
+### 3. PWA Push Notifications
+- Created src/lib/push-notifications.ts — Web Push with VAPID authentication
+- Created src/app/api/push/subscribe/route.ts — POST (save), DELETE (remove)
+- Created src/app/api/push/send/route.ts — POST (broadcast), GET (VAPID key)
+- Updated public/sw.js to v7 with push event handler + notification click routing
+- Added PushSubscription model to prisma/schema.prisma
+
+### 4. Email Notifications (Resend)
+- Created src/lib/email-service.ts with 4 HTML email templates:
+  - transactionApprovedTemplate, paymentReceivedTemplate, lowStockTemplate, newOrderTemplate
+- Created src/app/api/notifications/email/route.ts — POST (send), GET (config check)
+- Professional responsive HTML templates in Indonesian
+
+### 5. QRIS Payment (Tripay)
+- Created src/lib/qris-service.ts — create, status check, signature verification
+- Created src/app/api/payments/qris/create/route.ts — create QRIS for transaction
+- Created src/app/api/payments/qris/callback/route.ts — Tripay webhook with auto-payment processing
+- Added QrisPayment model to prisma/schema.prisma
+- Added QRIS callback to middleware PUBLIC_PATHS
+
+### 6. Infrastructure
+- Installed packages: web-push@3.6.7, resend@6.12.2
+- Updated .env.example with VAPID, Resend, Tripay env vars
+- Lint: 0 errors, 0 warnings
+- Pushed to GitHub: commit 9773292
+
+Stage Summary:
+- 18 files changed (+2090 lines, -400 lines)
+- 10 new files created, 8 existing files modified
+- All Month 2-3 roadmap items implemented
+- CI/CD will auto-rebuild Docker image on push
